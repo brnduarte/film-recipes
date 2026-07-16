@@ -17,6 +17,7 @@ app.innerHTML = `
       <label>Exposure <input id="exposure" type="range" min="-2" max="2" step="0.01" value="0" disabled /></label>
       <br />
       <label>Contrast <input id="contrast" type="range" min="0" max="1" step="0.01" value="0" disabled /></label>
+      <span id="contrast-note" style="display: none; color: #888; font-size: 0.85em;"> (no effect in Classic Chrome — contrast is baked into the film curve, not a separate recipe parameter)</span>
     </div>
     <p id="perf" style="font-family: monospace; white-space: pre;"></p>
   </main>
@@ -30,12 +31,20 @@ const exposureSlider = document.querySelector<HTMLInputElement>("#exposure")!;
 const contrastSlider = document.querySelector<HTMLInputElement>("#contrast")!;
 const modeDebugRadio = document.querySelector<HTMLInputElement>("#mode-debug")!;
 const modeClassicChromeRadio = document.querySelector<HTMLInputElement>("#mode-classic-chrome")!;
+const contrastNote = document.querySelector<HTMLSpanElement>("#contrast-note")!;
 
 let preview: GlPreview | null = null;
 let frameTimes: number[] = [];
+let hasImage = false;
 
 function currentMode(): PreviewMode {
   return modeClassicChromeRadio.checked ? "classic-chrome" : "debug";
+}
+
+function syncModeUi() {
+  const isClassicChrome = currentMode() === "classic-chrome";
+  contrastSlider.disabled = !hasImage || isClassicChrome;
+  contrastNote.style.display = isClassicChrome ? "inline" : "none";
 }
 
 async function main() {
@@ -83,14 +92,21 @@ fileInput.addEventListener("change", async () => {
     `Decoded ${decoded.width}x${decoded.height} in ${(t1 - t0).toFixed(1)}ms, ` +
     `GPU upload in ${(t3 - t2).toFixed(1)}ms. Drag sliders / switch mode below.`;
 
+  hasImage = true;
   exposureSlider.disabled = false;
-  contrastSlider.disabled = false;
+  syncModeUi();
   redraw();
 });
 
 exposureSlider.addEventListener("input", redraw);
 contrastSlider.addEventListener("input", redraw);
-modeDebugRadio.addEventListener("change", redraw);
-modeClassicChromeRadio.addEventListener("change", redraw);
+modeDebugRadio.addEventListener("change", () => {
+  syncModeUi();
+  redraw();
+});
+modeClassicChromeRadio.addEventListener("change", () => {
+  syncModeUi();
+  redraw();
+});
 
 main();

@@ -87,7 +87,11 @@ export class GlPreview {
       gl.useProgram(program);
       gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
       gl.uniform3fv(gl.getUniformLocation(program, "u_wbGain"), CLASSIC_CHROME_UNIFORMS.wbGain);
-      gl.uniform1f(gl.getUniformLocation(program, "u_exposureStops"), CLASSIC_CHROME_UNIFORMS.exposureStops);
+      // Exposure slider is a manual adjustment (pipeline.rs adds
+      // recipe.exposure_compensation + manual.exposure in stops), so it
+      // should still move the image in every mode, on top of the recipe's
+      // own baseline exposure_compensation (0 for Classic Chrome).
+      gl.uniform1f(gl.getUniformLocation(program, "u_exposureStops"), CLASSIC_CHROME_UNIFORMS.exposureStops + exposure);
       gl.uniform1f(gl.getUniformLocation(program, "u_saturationGain"), CLASSIC_CHROME_UNIFORMS.saturationGain);
       gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), CLASSIC_CHROME_UNIFORMS.colorChromeAmount);
       gl.uniform1f(
