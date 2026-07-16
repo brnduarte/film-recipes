@@ -1,15 +1,19 @@
 import init, { decode_raw, init_panic_hook } from "./wasm/wasm_bridge.js";
-import { GlPreview } from "./gl-preview";
+import { GlPreview, type PreviewMode } from "./gl-preview";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
   <main style="font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem;">
-    <h1>Fuji Recipes — Spike B</h1>
+    <h1>Fuji Recipes — Spike B/C</h1>
     <p>Decode a RAW file (WASM) once, then drag sliders — no re-decode, GPU-only preview.</p>
     <input id="file" type="file" accept=".nef,.raf,.cr2,.cr3,.arw,.dng,.orf" />
     <p id="status">Loading WASM module…</p>
     <canvas id="canvas" width="960" height="640" style="width: 100%; background: #111; display: block; margin-top: 1rem;"></canvas>
     <div style="margin-top: 1rem;">
+      <label><input id="mode-debug" type="radio" name="mode" value="debug" checked /> Debug (exposure/contrast)</label>
+      <label style="margin-left: 1rem;"><input id="mode-classic-chrome" type="radio" name="mode" value="classic-chrome" /> Classic Chrome (Spike C, unvalidated)</label>
+    </div>
+    <div style="margin-top: 0.5rem;">
       <label>Exposure <input id="exposure" type="range" min="-2" max="2" step="0.01" value="0" disabled /></label>
       <br />
       <label>Contrast <input id="contrast" type="range" min="0" max="1" step="0.01" value="0" disabled /></label>
@@ -24,9 +28,15 @@ const fileInput = document.querySelector<HTMLInputElement>("#file")!;
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
 const exposureSlider = document.querySelector<HTMLInputElement>("#exposure")!;
 const contrastSlider = document.querySelector<HTMLInputElement>("#contrast")!;
+const modeDebugRadio = document.querySelector<HTMLInputElement>("#mode-debug")!;
+const modeClassicChromeRadio = document.querySelector<HTMLInputElement>("#mode-classic-chrome")!;
 
 let preview: GlPreview | null = null;
 let frameTimes: number[] = [];
+
+function currentMode(): PreviewMode {
+  return modeClassicChromeRadio.checked ? "classic-chrome" : "debug";
+}
 
 async function main() {
   await init();
@@ -38,7 +48,7 @@ async function main() {
 function redraw() {
   if (!preview) return;
   const t0 = performance.now();
-  preview.draw(Number(exposureSlider.value), Number(contrastSlider.value));
+  preview.draw(currentMode(), Number(exposureSlider.value), Number(contrastSlider.value));
   const t1 = performance.now();
   frameTimes.push(t1 - t0);
   if (frameTimes.length > 30) frameTimes.shift();
@@ -71,7 +81,7 @@ fileInput.addEventListener("change", async () => {
 
   statusEl.textContent =
     `Decoded ${decoded.width}x${decoded.height} in ${(t1 - t0).toFixed(1)}ms, ` +
-    `GPU upload in ${(t3 - t2).toFixed(1)}ms. Drag sliders below.`;
+    `GPU upload in ${(t3 - t2).toFixed(1)}ms. Drag sliders / switch mode below.`;
 
   exposureSlider.disabled = false;
   contrastSlider.disabled = false;
@@ -80,5 +90,7 @@ fileInput.addEventListener("change", async () => {
 
 exposureSlider.addEventListener("input", redraw);
 contrastSlider.addEventListener("input", redraw);
+modeDebugRadio.addEventListener("change", redraw);
+modeClassicChromeRadio.addEventListener("change", redraw);
 
 main();
