@@ -82,6 +82,14 @@ mod spike_a_coverage {
                 if !entry.file_type().is_file() {
                     continue;
                 }
+                let is_hidden = entry
+                    .file_name()
+                    .to_str()
+                    .map(|n| n.starts_with('.'))
+                    .unwrap_or(false);
+                if is_hidden {
+                    continue;
+                }
                 total += 1;
                 match decode_raw_file(entry.path()) {
                     Ok(img) => {
