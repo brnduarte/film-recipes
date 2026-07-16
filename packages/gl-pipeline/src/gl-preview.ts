@@ -96,6 +96,7 @@ export class GlPreview {
       gl.uniform1f(gl.getUniformLocation(program, "u_saturationGain"), u.saturationGain);
       gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), u.colorChromeAmount);
       gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeFxBlueAmount"), u.colorChromeFxBlueAmount);
+      gl.uniform1i(gl.getUniformLocation(program, "u_useSepiaTone"), u.useSepiaTone ? 1 : 0);
     }
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
