@@ -1,0 +1,8 @@
+[package]
+name = "export-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+recipe-engine = { path = "../recipe-engine" }
