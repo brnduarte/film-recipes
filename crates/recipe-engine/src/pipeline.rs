@@ -62,13 +62,26 @@ pub fn apply_recipe_to_pixel(mut rgb: [f32; 3], recipe: &Recipe, manual: &Manual
     // 3+4. Dynamic range / shadow-highlight tone + film characteristic curve
     rgb = apply_tone(rgb, recipe);
 
-    // 5. Saturation (recipe `color` field, -4..+4 -> multiplicative)
-    let sat_gain = 1.0 + (recipe.color as f32) * 0.1;
+    // 5. Saturation (recipe `color` field, -4..+4 -> multiplicative).
+    // Monochrome simulations (ACROS, Monochrome, Sepia) are always fully
+    // desaturated, since `color`'s -4..+4 range only reaches a 0.6 minimum
+    // gain and can't represent true monochrome on its own.
+    let sat_gain = if crate::acros::is_monochrome(recipe.film_simulation) {
+        0.0
+    } else {
+        1.0 + (recipe.color as f32) * 0.1
+    };
     rgb = apply_saturation(rgb, sat_gain);
 
     // 6-7. Color Chrome Effect / FX Blue
     rgb = apply_color_chrome_effect(rgb, recipe.color_chrome_effect);
     rgb = apply_color_chrome_fx_blue(rgb, recipe.color_chrome_fx_blue);
+
+    // 8. Sepia tint (post-saturation special case — see monochrome.rs doc
+    // comment for why this can't be done earlier in the pipeline).
+    if recipe.film_simulation == crate::recipe::FilmSimulation::Sepia {
+        rgb = crate::monochrome::apply_sepia_tone(rgb);
+    }
 
     [rgb[0].clamp(0.0, 1.0), rgb[1].clamp(0.0, 1.0), rgb[2].clamp(0.0, 1.0)]
 }

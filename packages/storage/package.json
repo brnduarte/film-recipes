@@ -1,0 +1,18 @@
+{
+  "name": "@fuji-recipes/storage",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "tsx test/storage.test.ts"
+  },
+  "dependencies": {
+    "@fuji-recipes/core-types": "workspace:*",
+    "idb": "^8.0.0"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.0",
+    "tsx": "^4.19.0"
+  }
+}

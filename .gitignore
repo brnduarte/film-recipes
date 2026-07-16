@@ -4,3 +4,6 @@ dist/
 .DS_Store
 tests/fixtures/**/*
 !tests/fixtures/**/.gitkeep
+/test-results/
+/playwright-report/
+/blob-report/

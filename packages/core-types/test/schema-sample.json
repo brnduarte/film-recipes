@@ -1,0 +1,41 @@
+{
+  "id": "preset-classic-chrome-default",
+  "name": "Classic Chrome",
+  "favorite": false,
+  "order": 0,
+  "recipe": {
+    "film_simulation": "ClassicChrome",
+    "acros_filter": "None",
+    "dynamic_range": "Dr400",
+    "tone": {
+      "highlight": -2,
+      "shadow": -1
+    },
+    "color": -2,
+    "sharpness": -1,
+    "noise_reduction": -2,
+    "grain": {
+      "strength": "Off",
+      "size": "Fine"
+    },
+    "color_chrome_effect": "Weak",
+    "color_chrome_fx_blue": "Off",
+    "white_balance": {
+      "mode": "Kelvin",
+      "kelvin": 5500,
+      "red_shift": 0,
+      "blue_shift": 0
+    },
+    "exposure_compensation": 0.0
+  },
+  "manual_adjustments": {
+    "exposure": 0.0,
+    "wb_temp_override": null,
+    "wb_tint_override": null,
+    "sharpness_override": null,
+    "vignette": 0.0
+  },
+  "created_at": "2026-07-16T00:00:00Z",
+  "updated_at": "2026-07-16T00:00:00Z",
+  "schema_version": 1
+}

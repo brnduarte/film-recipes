@@ -3,10 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fuji Recipes — Spike B: decode + preview perf</title>
+    <!--
+      Strict CSP per plan section 7 (Privacy/Security Implementation):
+      default-src 'self' with connect-src scoped to 'self' only (no external
+      endpoints — this is what makes "no network calls for image data" an
+      enforced property, not just a claim). 'wasm-unsafe-eval' is required
+      to instantiate the WASM decoder.
+
+      style-src 'unsafe-inline' is NOT for app code — the UI is now real
+      Tailwind CSS with no inline style props/template strings — it's kept
+      because `vite`'s dev server injects CSS via inline <style> tags for
+      HMR (production builds emit a real stylesheet <link> and don't need
+      it). Revisit with a nonce-based CSP (needs a server response header,
+      not this <meta> tag) once there's a real HTTP server in front of the
+      production build to attach one to.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <title>Fuji Recipes</title>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

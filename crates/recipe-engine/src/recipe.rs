@@ -1,8 +1,9 @@
 //! Canonical `Recipe` / `EditInstructionSet` / `Preset` data model.
 //!
 //! Defined once here in Rust (source of truth); mirrored by hand in
-//! `packages/core-types` (TS) once that package exists, kept in sync via a
-//! round-trip schema-parity test. See docs/recipe-schema.md.
+//! `packages/core-types/src/index.ts` (TS), kept in sync via the
+//! round-trip schema-parity test in
+//! `packages/core-types/test/schema-parity.mjs`. See docs/recipe-schema.md.
 
 use serde::{Deserialize, Serialize};
 

@@ -6,3 +6,5 @@ license.workspace = true
 
 [dependencies]
 recipe-engine = { path = "../recipe-engine" }
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+thiserror = "1"

@@ -1,6 +1,15 @@
+// WebGL2 preview renderer: uploads a decoded image once, then does cheap
+// GPU-only redraws on every slider/recipe change (no re-decode). Per the
+// plan, live preview is "WebGL2 shaders on a downsampled proxy texture,
+// identical on both [web and desktop]" — so this class lives here in
+// gl-pipeline rather than in processing-web, and Tauri desktop (which also
+// renders its UI in a webview) can reuse it unchanged in Phase 3.
+
 import vertSrc from "./shaders/preview.vert.glsl?raw";
-import debugFragSrc from "./shaders/preview.frag.glsl?raw";
-import classicChromeFragSrc from "../../../packages/gl-pipeline/src/shaders/classic-chrome.frag.glsl?raw";
+import debugFragSrc from "./shaders/debug.frag.glsl?raw";
+import recipeFragSrc from "./shaders/recipe.frag.glsl?raw";
+import { computeUniformsForRecipe } from "./recipe-uniforms";
+import type { Recipe } from "@fuji-recipes/core-types";
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type)!;
@@ -27,23 +36,10 @@ function link(gl: WebGL2RenderingContext, vertSource: string, fragSource: string
   return program;
 }
 
-export type PreviewMode = "debug" | "classic-chrome";
-
-// Fixed uniforms matching classic_chrome_recipe() in
-// crates/recipe-engine/src/classic_chrome.rs — kept identical to
-// packages/gl-pipeline/src/classic-chrome-reference.mjs's constants.
-const CLASSIC_CHROME_UNIFORMS = {
-  wbGain: [1, 1, 1] as const,
-  exposureStops: 0.0,
-  saturationGain: 1.0 + -2 * 0.1,
-  colorChromeAmount: 0.35, // Weak
-  colorChromeFxBlueAmount: 0.0, // Off
-};
-
 export class GlPreview {
   private gl: WebGL2RenderingContext;
   private debugProgram: WebGLProgram;
-  private classicChromeProgram: WebGLProgram;
+  private recipeProgram: WebGLProgram;
   private texture: WebGLTexture;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -52,7 +48,7 @@ export class GlPreview {
     this.gl = gl;
 
     this.debugProgram = link(gl, vertSrc, debugFragSrc);
-    this.classicChromeProgram = link(gl, vertSrc, classicChromeFragSrc);
+    this.recipeProgram = link(gl, vertSrc, recipeFragSrc);
 
     this.texture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -69,35 +65,37 @@ export class GlPreview {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
   }
 
-  /** Cheap, GPU-only redraw — this is what runs on every slider/mode change. */
-  draw(mode: PreviewMode, exposure: number, contrast: number) {
+  /**
+   * Cheap, GPU-only redraw — this is what runs on every slider/recipe/mode
+   * change. `showOriginal` renders the untouched decode (the "before" side
+   * of the before/after toggle); otherwise `recipe` + `manualExposureStops`
+   * (from ManualAdjustments.exposure) are applied via the generalized
+   * recipe shader.
+   */
+  draw(showOriginal: boolean, recipe: Recipe, manualExposureStops: number) {
     const gl = this.gl;
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-    if (mode === "debug") {
+    if (showOriginal) {
       const program = this.debugProgram;
       gl.useProgram(program);
       gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-      gl.uniform1f(gl.getUniformLocation(program, "u_exposure"), exposure);
-      gl.uniform1f(gl.getUniformLocation(program, "u_contrast"), contrast);
+      gl.uniform1f(gl.getUniformLocation(program, "u_exposure"), 0);
     } else {
-      const program = this.classicChromeProgram;
+      const u = computeUniformsForRecipe(recipe, manualExposureStops);
+      const program = this.recipeProgram;
       gl.useProgram(program);
       gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-      gl.uniform3fv(gl.getUniformLocation(program, "u_wbGain"), CLASSIC_CHROME_UNIFORMS.wbGain);
-      // Exposure slider is a manual adjustment (pipeline.rs adds
-      // recipe.exposure_compensation + manual.exposure in stops), so it
-      // should still move the image in every mode, on top of the recipe's
-      // own baseline exposure_compensation (0 for Classic Chrome).
-      gl.uniform1f(gl.getUniformLocation(program, "u_exposureStops"), CLASSIC_CHROME_UNIFORMS.exposureStops + exposure);
-      gl.uniform1f(gl.getUniformLocation(program, "u_saturationGain"), CLASSIC_CHROME_UNIFORMS.saturationGain);
-      gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), CLASSIC_CHROME_UNIFORMS.colorChromeAmount);
-      gl.uniform1f(
-        gl.getUniformLocation(program, "u_colorChromeFxBlueAmount"),
-        CLASSIC_CHROME_UNIFORMS.colorChromeFxBlueAmount,
-      );
+      gl.uniform3fv(gl.getUniformLocation(program, "u_wbGain"), u.wbGain);
+      gl.uniform1f(gl.getUniformLocation(program, "u_exposureStops"), u.exposureStops);
+      gl.uniform1f(gl.getUniformLocation(program, "u_shadowLift"), u.shadowLift);
+      gl.uniform1f(gl.getUniformLocation(program, "u_highlightPull"), u.highlightPull);
+      gl.uniform1i(gl.getUniformLocation(program, "u_useClassicChromeCurve"), u.useClassicChromeCurve ? 1 : 0);
+      gl.uniform1f(gl.getUniformLocation(program, "u_saturationGain"), u.saturationGain);
+      gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), u.colorChromeAmount);
+      gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeFxBlueAmount"), u.colorChromeFxBlueAmount);
     }
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);

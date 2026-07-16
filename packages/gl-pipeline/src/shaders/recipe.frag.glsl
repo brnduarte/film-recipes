@@ -1,32 +1,47 @@
 #version 300 es
 precision highp float;
 
-// Classic Chrome preview shader — GLSL mirror of
-// crates/recipe-engine/src/{white_balance,tone,classic_chrome,color_chrome,pipeline}.rs
+// Generalized recipe preview shader — GLSL mirror of
+// crates/recipe-engine/src/{white_balance,tone,classic_chrome,color_chrome,
+// pipeline}.rs, driven entirely by uniforms so ONE compiled program covers
+// every Phase 1 recipe (Provia/Velvia/ClassicChrome/Acros), matching how
+// `pipeline::apply_recipe_to_pixel` takes any `Recipe` rather than having a
+// separate function per film simulation. Uniform values are computed from a
+// `Recipe` by recipe-uniforms.ts (see that file for the Rust formulas each
+// uniform mirrors).
 //
 // Stage order MUST match recipe-engine::pipeline::PIPELINE_ORDER exactly:
 //   1. White balance
 //   2. Exposure
-//   3. Dynamic range + film characteristic tone curve (+ split-tone)
+//   3. Dynamic range curve + film characteristic curve (+ split-tone)
 //   4. Saturation
 //   5. Color Chrome Effect
 //   6. Color Chrome FX Blue
+//   7. Sepia tint (Sepia only, post-saturation — see monochrome.rs)
 // (Sharpness/NR/grain/vignette are non-per-pixel stages, not in this shader.)
 //
-// NOT YET visually validated against a real Fuji Classic Chrome JPEG — see
-// crates/recipe-engine/src/classic_chrome.rs doc comment. Control points
-// below must be kept numerically identical to the Rust implementation; see
-// packages/gl-pipeline/src/classic-chrome-reference.ts for the parity test
-// that checks this.
+// LIMITATION: only Classic Chrome has a non-identity film characteristic
+// curve + split-tone in the Rust side today (tone.rs::film_characteristic_curve
+// falls back to identity for every other simulation) — that's why this is
+// captured as a single u_useClassicChromeCurve bool rather than a generic
+// per-recipe control-point uniform array. If a future recipe (Phase 2) gets
+// its own curve, this shader (and recipe-uniforms.ts / recipe-reference.mjs)
+// needs to generalize further.
+//
+// NOT YET visually validated against real Fuji reference JPEGs — see the
+// doc comments on classic_chrome.rs / velvia.rs / acros.rs.
 
 uniform sampler2D u_image;
 
-// Recipe-derived uniforms (all provided by JS, computed from a Recipe).
-uniform vec3 u_wbGain;       // kelvin_to_rgb_gain() * shift, from white_balance.rs
-uniform float u_exposureStops;
-uniform float u_saturationGain; // 1.0 + color * 0.1
-uniform float u_colorChromeAmount;     // strength_factor(color_chrome_effect)
+uniform vec3 u_wbGain;          // kelvin_to_rgb_gain() * shift, from white_balance.rs
+uniform float u_exposureStops;  // recipe.exposure_compensation + manual.exposure
+uniform float u_shadowLift;     // tone.rs::dynamic_range_curve shadow_lift
+uniform float u_highlightPull;  // tone.rs::dynamic_range_curve highlight_pull
+uniform bool u_useClassicChromeCurve; // film_characteristic_curve != identity
+uniform float u_saturationGain; // 1.0 + color * 0.1, or 0.0 if monochrome
+uniform float u_colorChromeAmount;      // strength_factor(color_chrome_effect)
 uniform float u_colorChromeFxBlueAmount; // strength_factor(color_chrome_fx_blue)
+uniform bool u_useSepiaTone;            // film_simulation == Sepia, monochrome.rs::apply_sepia_tone
 
 in vec2 v_uv;
 out vec4 outColor;
@@ -48,22 +63,24 @@ float applyCurve4(float x, vec2 p0, vec2 p1, vec2 p2, vec2 p3, vec2 p4) {
   return mix(p3.y, p4.y, (x - p3.x) / (p4.x - p3.x));
 }
 
-// tone.rs::dynamic_range_curve for DR400, tone{highlight:-2, shadow:-1}
-// (Classic Chrome's fixed recipe values — see classic_chrome.rs).
+// tone.rs::dynamic_range_curve, parameterized by the two uniforms above
+// (computed per-recipe in recipe-uniforms.ts, since dynamic_range + tone are
+// fixed inputs, not per-pixel).
 float dynamicRangeCurve(float x) {
-  const float shadowLift = 0.05; // 0.06 - abs(-1)*0.01, classic_chrome.rs tone.shadow=-1
-  const float highlightPull = 0.07; // 0.10 + (-2)*0.015
+  float shadowLift = max(u_shadowLift, 0.0);
+  float highlightPull = u_highlightPull;
   return applyCurve3(
     x,
-    vec2(0.0, max(shadowLift, 0.0)),
-    vec2(0.25, 0.25 + shadowLift * 0.5),
+    vec2(0.0, shadowLift),
+    vec2(0.25, 0.25 + u_shadowLift * 0.5),
     vec2(0.75, 0.75 - highlightPull * 0.5),
     vec2(1.0, min(1.0 - highlightPull, 1.0))
   );
 }
 
-// classic_chrome.rs::tone_curve()
-float filmCurve(float x) {
+// classic_chrome.rs::tone_curve() — the only non-identity film curve among
+// the Phase 1 recipes (see LIMITATION note above).
+float classicChromeCurve(float x) {
   return applyCurve4(
     x,
     vec2(0.0, 0.02),
@@ -75,7 +92,7 @@ float filmCurve(float x) {
 }
 
 // classic_chrome.rs::apply_split_tone
-vec3 splitTone(vec3 rgb) {
+vec3 classicChromeSplitTone(vec3 rgb) {
   float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
   float shadowWeight = pow(1.0 - luma, 2.0) * 0.04;
   float highlightWeight = pow(luma, 2.0) * 0.03;
@@ -125,6 +142,12 @@ vec3 colorChromeFxBlue(vec3 rgb, float amount) {
   return hsv2rgb(vec3(hsv.x, clamp(compressed, 0.0, 1.0), hsv.z));
 }
 
+// monochrome.rs::apply_sepia_tone
+vec3 sepiaTone(vec3 rgb) {
+  float luma = rgb.g; // R=G=B already, any channel is the luma value
+  return clamp(vec3(luma * 1.07, luma * 0.86, luma * 0.62), 0.0, 1.0);
+}
+
 void main() {
   vec3 rgb = texture(u_image, v_uv).rgb;
 
@@ -134,13 +157,12 @@ void main() {
   // 2. Exposure
   rgb *= pow(2.0, u_exposureStops);
 
-  // 3. Dynamic range + film curve + split-tone
-  rgb = vec3(
-    filmCurve(dynamicRangeCurve(rgb.r)),
-    filmCurve(dynamicRangeCurve(rgb.g)),
-    filmCurve(dynamicRangeCurve(rgb.b))
-  );
-  rgb = splitTone(rgb);
+  // 3. Dynamic range curve + film characteristic curve, then split-tone
+  rgb = vec3(dynamicRangeCurve(rgb.r), dynamicRangeCurve(rgb.g), dynamicRangeCurve(rgb.b));
+  if (u_useClassicChromeCurve) {
+    rgb = vec3(classicChromeCurve(rgb.r), classicChromeCurve(rgb.g), classicChromeCurve(rgb.b));
+    rgb = classicChromeSplitTone(rgb);
+  }
 
   // 4. Saturation (pipeline.rs::apply_saturation)
   float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -149,6 +171,11 @@ void main() {
   // 5-6. Color Chrome Effect / FX Blue
   rgb = colorChromeEffect(rgb, u_colorChromeAmount);
   rgb = colorChromeFxBlue(rgb, u_colorChromeFxBlueAmount);
+
+  // 7. Sepia tint (post-saturation special case)
+  if (u_useSepiaTone) {
+    rgb = sepiaTone(rgb);
+  }
 
   outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }
