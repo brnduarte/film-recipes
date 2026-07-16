@@ -25,17 +25,71 @@ pub struct DecodedRaw {
     pub pixels: Vec<f32>,
 }
 
-/// Decode a RAW file from a path. Format is auto-detected by `rawler` from
-/// file contents (not just extension).
+/// Decode + fully develop a RAW file from a path: format auto-detection,
+/// demosaic, white balance, color calibration, and sRGB conversion, all via
+/// `rawler::imgop::develop::RawDevelop` (its default step set). This is the
+/// real pipeline — not a stub — used by both Spike A (coverage) and Spike B
+/// (WASM/WebGL2 preview perf), and later by `recipe-engine::pipeline` as the
+/// decode stage feeding into recipe application.
 pub fn decode_raw_file(path: &Path) -> Result<DecodedRaw, DecodeError> {
+    use rawler::imgop::develop::RawDevelop;
+
     let raw_image = rawler::decode_file(path).map_err(|e| DecodeError::Decode(e.to_string()))?;
 
-    let width = raw_image.width;
-    let height = raw_image.height;
+    let developed = RawDevelop::default()
+        .develop_intermediate(&raw_image)
+        .map_err(|e| DecodeError::Decode(e.to_string()))?;
 
-    // Spike A only needs to prove decode succeeds and dimensions are sane;
-    // full demosaic pipeline lands in Phase 1 (`recipe-engine::pipeline`).
-    let pixels = vec![0.0f32; width * height * 3];
+    let dynamic_image = developed
+        .to_dynamic_image()
+        .ok_or_else(|| DecodeError::Decode("failed to materialize developed image buffer".into()))?;
+
+    let rgb8 = dynamic_image.to_rgb8();
+    let width = rgb8.width() as usize;
+    let height = rgb8.height() as usize;
+    let pixels = rgb8
+        .into_raw()
+        .into_iter()
+        .map(|byte| byte as f32 / 255.0)
+        .collect();
+
+    Ok(DecodedRaw {
+        width,
+        height,
+        pixels,
+    })
+}
+
+/// Decode + fully develop a RAW file from an in-memory byte buffer (no
+/// filesystem access) — the entry point used by the WASM bridge, since a
+/// browser only ever hands us bytes, never a path. Shares the exact same
+/// `RawDevelop` pipeline as `decode_raw_file` so native (Tauri) and
+/// WASM/browser decode produce identical results.
+pub fn decode_raw_bytes(bytes: Vec<u8>) -> Result<DecodedRaw, DecodeError> {
+    use rawler::decoders::RawDecodeParams;
+    use rawler::imgop::develop::RawDevelop;
+    use rawler::rawsource::RawSource;
+
+    let source = RawSource::new_from_slice(&bytes);
+    let raw_image = rawler::decode(&source, &RawDecodeParams::default())
+        .map_err(|e| DecodeError::Decode(e.to_string()))?;
+
+    let developed = RawDevelop::default()
+        .develop_intermediate(&raw_image)
+        .map_err(|e| DecodeError::Decode(e.to_string()))?;
+
+    let dynamic_image = developed
+        .to_dynamic_image()
+        .ok_or_else(|| DecodeError::Decode("failed to materialize developed image buffer".into()))?;
+
+    let rgb8 = dynamic_image.to_rgb8();
+    let width = rgb8.width() as usize;
+    let height = rgb8.height() as usize;
+    let pixels = rgb8
+        .into_raw()
+        .into_iter()
+        .map(|byte| byte as f32 / 255.0)
+        .collect();
 
     Ok(DecodedRaw {
         width,

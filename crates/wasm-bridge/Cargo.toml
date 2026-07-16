@@ -11,3 +11,8 @@ crate-type = ["cdylib", "rlib"]
 raw-decode = { path = "../raw-decode" }
 recipe-engine = { path = "../recipe-engine" }
 wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+# rawler depends on uuid (v4); on wasm32 uuid needs an explicit randomness
+# source, which we supply here via feature unification since rawler itself
+# doesn't specify one (fine on native, where a default backend is picked up).
+uuid = { version = "1", features = ["js"] }

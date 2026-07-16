@@ -11,3 +11,12 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+
+# Vendored, patched copy of rawler 0.7.2: removes two std::time::Instant::now()
+# debug-timing calls in the Bayer/X-Trans demosaic hot path (imgop/sensor/bayer/ppg.rs,
+# imgop/sensor/xtrans/xtrans_fast.rs) and one in the CR3 decompressor
+# (decompressors/crx/decoder.rs) that panic on wasm32-unknown-unknown ("time not
+# implemented on this platform"). Upstream rawler is LGPL-2.1 licensed — see
+# docs/decisions/raw-decoder-license.md for the open licensing question this raises.
+[patch.crates-io]
+rawler = { path = "third_party/rawler" }
