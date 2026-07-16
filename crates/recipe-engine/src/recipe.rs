@@ -1,2 +1,210 @@
-//! Canonical `Recipe` data model — see docs/recipe-schema.md and the plan's
-//! section 3 for the full field-by-field spec. Placeholder pending Spike C.
+//! Canonical `Recipe` / `EditInstructionSet` / `Preset` data model.
+//!
+//! Defined once here in Rust (source of truth); mirrored by hand in
+//! `packages/core-types` (TS) once that package exists, kept in sync via a
+//! round-trip schema-parity test. See docs/recipe-schema.md.
+
+use serde::{Deserialize, Serialize};
+
+/// Fujifilm film simulation modes relevant to recipe building.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FilmSimulation {
+    Provia,
+    Velvia,
+    Astia,
+    ClassicChrome,
+    ClassicNeg,
+    ProNegHi,
+    ProNegStd,
+    Eterna,
+    EternaBleachBypass,
+    Acros,
+    Monochrome,
+    Sepia,
+}
+
+/// ACROS/Monochrome yellow/red/green filter emulation. `None` when the
+/// active `film_simulation` is not ACROS or Monochrome.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AcrosFilter {
+    None,
+    Yellow,
+    Red,
+    Green,
+}
+
+/// Fuji DR (dynamic range) setting: widens tonal range by underexposing the
+/// base capture and lifting shadows in-camera. Represented here as the
+/// nominal percentage, applied as a highlight-rolloff/shadow-lift strength.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DynamicRange {
+    Dr100,
+    Dr200,
+    Dr400,
+}
+
+/// -2..+4 in Fuji's own step scale (Soft..Hard), stored as a signed strength.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ToneSetting {
+    pub highlight: i8, // -2..+4
+    pub shadow: i8,    // -2..+4
+}
+
+impl Default for ToneSetting {
+    fn default() -> Self {
+        Self { highlight: 0, shadow: 0 }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ColorChromeStrength {
+    Off,
+    Weak,
+    Strong,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct GrainSettings {
+    pub strength: ColorChromeStrength, // Off/Weak/Strong reused: Fuji uses same 3-step scale
+    pub size: GrainSize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum GrainSize {
+    Fine,
+    Large,
+}
+
+impl Default for GrainSettings {
+    fn default() -> Self {
+        Self { strength: ColorChromeStrength::Off, size: GrainSize::Fine }
+    }
+}
+
+// Preset modes (Daylight, Shade, Fluorescent, etc.) collapse to an
+// equivalent Kelvin+shift pair at recipe-authoring time, so downstream code
+// only ever deals with `Kelvin`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WhiteBalanceMode {
+    Auto,
+    Kelvin,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct WhiteBalance {
+    pub mode: WhiteBalanceMode,
+    pub kelvin: u32, // 2500..10000
+    pub red_shift: i8, // -9..+9, Fuji WB shift scale
+    pub blue_shift: i8, // -9..+9
+}
+
+impl Default for WhiteBalance {
+    fn default() -> Self {
+        Self { mode: WhiteBalanceMode::Kelvin, kelvin: 5500, red_shift: 0, blue_shift: 0 }
+    }
+}
+
+/// All real Fuji recipe parameters — the "what film simulation this is"
+/// definition, independent of any particular photo.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Recipe {
+    pub film_simulation: FilmSimulation,
+    pub acros_filter: AcrosFilter,
+    pub dynamic_range: DynamicRange,
+    pub tone: ToneSetting,
+    pub color: i8,     // -4..+4, saturation
+    pub sharpness: i8, // -4..+4
+    pub noise_reduction: i8, // -4..+4
+    pub grain: GrainSettings,
+    pub color_chrome_effect: ColorChromeStrength,
+    pub color_chrome_fx_blue: ColorChromeStrength,
+    pub white_balance: WhiteBalance,
+    pub exposure_compensation: f32, // stops, -2.0..+2.0
+}
+
+impl Recipe {
+    /// Neutral Provia baseline — every other recipe starts from this and
+    /// overrides fields, matching how a Fuji shooter builds a recipe.
+    pub fn provia_baseline() -> Self {
+        Self {
+            film_simulation: FilmSimulation::Provia,
+            acros_filter: AcrosFilter::None,
+            dynamic_range: DynamicRange::Dr100,
+            tone: ToneSetting::default(),
+            color: 0,
+            sharpness: 0,
+            noise_reduction: 0,
+            grain: GrainSettings::default(),
+            color_chrome_effect: ColorChromeStrength::Off,
+            color_chrome_fx_blue: ColorChromeStrength::Off,
+            white_balance: WhiteBalance::default(),
+            exposure_compensation: 0.0,
+        }
+    }
+}
+
+/// Non-destructive, **session-only** edit state for one open photo. Never
+/// persisted or written to storage — `source_image_id` is only ever a
+/// runtime map key (`sourceImageId -> ArrayBuffer/ImageBitmap`), never a
+/// file path or storage reference.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditInstructionSet {
+    pub source_image_id: String,
+    pub base_recipe: Recipe,
+    pub overrides: RecipeOverrides,
+    pub manual_adjustments: ManualAdjustments,
+    pub crop: Option<Crop>,
+}
+
+/// Sparse per-field overrides on top of `base_recipe`. All `None` means
+/// "use the recipe as authored."
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RecipeOverrides {
+    pub color: Option<i8>,
+    pub sharpness: Option<i8>,
+    pub noise_reduction: Option<i8>,
+    pub tone: Option<ToneSetting>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ManualAdjustments {
+    pub exposure: f32,        // stops
+    pub wb_temp_override: Option<u32>,
+    pub wb_tint_override: Option<i8>,
+    pub sharpness_override: Option<i8>,
+    pub vignette: f32, // 0.0..1.0
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct Crop {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub rotation_degrees: f32,
+}
+
+/// The only thing actually saved to IndexedDB. No crop, no image reference —
+/// presets describe a *look*, not an edit of a specific photo.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Preset {
+    pub id: String,
+    pub name: String,
+    pub favorite: bool,
+    pub order: u32,
+    pub recipe: Recipe,
+    pub manual_adjustments: ManualAdjustments,
+    pub created_at: String, // RFC3339
+    pub updated_at: String, // RFC3339
+    pub schema_version: u32,
+}
+
+pub const CURRENT_PRESET_SCHEMA_VERSION: u32 = 1;
+
+/// JSON export/import envelope for presets, per plan section 3.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresetExport {
+    pub schema_version: u32,
+    pub exported_at: String, // RFC3339
+    pub presets: Vec<Preset>,
+}
