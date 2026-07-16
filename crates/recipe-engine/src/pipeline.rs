@@ -83,7 +83,57 @@ pub fn apply_recipe_to_pixel(mut rgb: [f32; 3], recipe: &Recipe, manual: &Manual
         rgb = crate::monochrome::apply_sepia_tone(rgb);
     }
 
+    // 9. Manual global adjustments (user sliders), graded on top of the
+    // finished recipe look — see `apply_manual_grade`.
+    rgb = apply_manual_grade(rgb, manual);
+
     [rgb[0].clamp(0.0, 1.0), rgb[1].clamp(0.0, 1.0), rgb[2].clamp(0.0, 1.0)]
+}
+
+/// User-facing global grade applied after the recipe (white balance,
+/// contrast, highlights, shadows, levels, saturation). Manual exposure is
+/// folded into the recipe's exposure stage earlier, so it's not repeated
+/// here. Stage order is authoritative and must match the GLSL mirror in
+/// recipe.frag.glsl exactly (parity harness enforces it).
+fn apply_manual_grade(mut rgb: [f32; 3], m: &ManualAdjustments) -> [f32; 3] {
+    // White balance: warm (+) boosts red and cuts blue; cool (-) the reverse.
+    let wb = m.white_balance;
+    rgb = [rgb[0] * (1.0 + wb * 0.2), rgb[1], rgb[2] * (1.0 - wb * 0.2)];
+
+    // Contrast: linear slope around a 0.5 pivot.
+    let contrast = 1.0 + m.contrast;
+    rgb = [
+        (rgb[0] - 0.5) * contrast + 0.5,
+        (rgb[1] - 0.5) * contrast + 0.5,
+        (rgb[2] - 0.5) * contrast + 0.5,
+    ];
+
+    // Highlights / shadows: tonal-range-weighted lift, each computed from the
+    // same input value so the two don't interfere.
+    rgb = [manual_tone(rgb[0], m), manual_tone(rgb[1], m), manual_tone(rgb[2], m)];
+
+    // Levels: remap [black_level, white_level] onto [0, 1].
+    let range = (m.white_level - m.black_level).max(1e-3);
+    rgb = [
+        (rgb[0] - m.black_level) / range,
+        (rgb[1] - m.black_level) / range,
+        (rgb[2] - m.black_level) / range,
+    ];
+
+    // Saturation: luma-pivot multiply.
+    let sat = 1.0 + m.saturation;
+    let luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    [
+        luma + (rgb[0] - luma) * sat,
+        luma + (rgb[1] - luma) * sat,
+        luma + (rgb[2] - luma) * sat,
+    ]
+}
+
+fn manual_tone(x: f32, m: &ManualAdjustments) -> f32 {
+    let highlight_weight = ((x - 0.5) * 2.0).clamp(0.0, 1.0);
+    let shadow_weight = ((0.5 - x) * 2.0).clamp(0.0, 1.0);
+    x + m.highlights * 0.25 * highlight_weight + m.shadows * 0.25 * shadow_weight
 }
 
 fn apply_saturation(rgb: [f32; 3], gain: f32) -> [f32; 3] {

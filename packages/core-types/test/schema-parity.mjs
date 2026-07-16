@@ -34,8 +34,8 @@ const EXPECTED_KEYS = {
   GrainSettings: ["strength", "size"],
   WhiteBalance: ["mode", "kelvin", "red_shift", "blue_shift"],
   ManualAdjustments: [
-    "exposure", "wb_temp_override", "wb_tint_override",
-    "sharpness_override", "vignette",
+    "exposure", "white_balance", "contrast", "highlights",
+    "shadows", "saturation", "black_level", "white_level",
   ],
 };
 

@@ -19,7 +19,7 @@
 // TS/bundler dependency, matching the existing classic-chrome-reference.mjs
 // precedent.
 
-import type { ColorChromeStrength, DynamicRange, FilmSimulation, Recipe, ToneSetting, WhiteBalance } from "@fuji-recipes/core-types";
+import type { ColorChromeStrength, DynamicRange, FilmSimulation, ManualAdjustments, Recipe, ToneSetting, WhiteBalance } from "@fuji-recipes/core-types";
 
 // white_balance.rs::REFERENCE_KELVIN
 const REFERENCE_KELVIN = 5500;
@@ -69,7 +69,28 @@ export interface RecipeUniforms {
   colorChromeAmount: number;
   colorChromeFxBlueAmount: number;
   useSepiaTone: boolean;
+  // Manual global grade (pipeline.rs::apply_manual_grade), passed straight
+  // through as per-pixel scalar uniforms.
+  manualWhiteBalance: number;
+  manualContrast: number;
+  manualHighlights: number;
+  manualShadows: number;
+  manualSaturation: number;
+  manualBlackLevel: number;
+  manualWhiteLevel: number;
 }
+
+/** Identity manual grade — a no-op, matching `ManualAdjustments::default()`. */
+export const NEUTRAL_MANUAL: ManualAdjustments = {
+  exposure: 0,
+  white_balance: 0,
+  contrast: 0,
+  highlights: 0,
+  shadows: 0,
+  saturation: 0,
+  black_level: 0,
+  white_level: 1,
+};
 
 // acros.rs::is_monochrome
 export function isMonochrome(sim: FilmSimulation): boolean {
@@ -102,12 +123,12 @@ function dynamicRangeParams(dr: DynamicRange, tone: ToneSetting): { shadowLift: 
   return { shadowLift, highlightPull };
 }
 
-export function computeUniformsForRecipe(recipe: Recipe, manualExposureStops: number): RecipeUniforms {
+export function computeUniformsForRecipe(recipe: Recipe, manual: ManualAdjustments): RecipeUniforms {
   const { shadowLift, highlightPull } = dynamicRangeParams(recipe.dynamic_range, recipe.tone);
 
   return {
     wbGain: wbGainForRecipe(recipe.white_balance),
-    exposureStops: recipe.exposure_compensation + manualExposureStops,
+    exposureStops: recipe.exposure_compensation + manual.exposure,
     shadowLift,
     highlightPull,
     useClassicChromeCurve: recipe.film_simulation === "ClassicChrome",
@@ -115,5 +136,12 @@ export function computeUniformsForRecipe(recipe: Recipe, manualExposureStops: nu
     colorChromeAmount: strengthFactor(recipe.color_chrome_effect),
     colorChromeFxBlueAmount: strengthFactor(recipe.color_chrome_fx_blue),
     useSepiaTone: recipe.film_simulation === "Sepia",
+    manualWhiteBalance: manual.white_balance,
+    manualContrast: manual.contrast,
+    manualHighlights: manual.highlights,
+    manualShadows: manual.shadows,
+    manualSaturation: manual.saturation,
+    manualBlackLevel: manual.black_level,
+    manualWhiteLevel: manual.white_level,
   };
 }

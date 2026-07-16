@@ -167,13 +167,36 @@ pub struct RecipeOverrides {
     pub tone: Option<ToneSetting>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+/// Global, non-destructive manual adjustments applied *after* the recipe's
+/// baked-in look — the user-facing edit sliders. Every field defaults to a
+/// no-op identity (see `Default`), so `ManualAdjustments::default()` leaves a
+/// recipe untouched. Applied per-pixel by `pipeline::apply_manual_grade` and
+/// mirrored in the GLSL preview (recipe.frag.glsl / recipe-uniforms.ts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ManualAdjustments {
-    pub exposure: f32,        // stops
-    pub wb_temp_override: Option<u32>,
-    pub wb_tint_override: Option<i8>,
-    pub sharpness_override: Option<i8>,
-    pub vignette: f32, // 0.0..1.0
+    pub exposure: f32,      // stops, combines additively with recipe exposure comp
+    pub white_balance: f32, // -1..+1, cool..warm temperature shift
+    pub contrast: f32,      // -1..+1, S-slope around a 0.5 pivot
+    pub highlights: f32,    // -1..+1, recover(-)/boost(+) upper tones
+    pub shadows: f32,       // -1..+1, crush(-)/lift(+) lower tones
+    pub saturation: f32,    // -1..+1, luma-pivot saturation
+    pub black_level: f32,   // 0..+1, levels black point (default 0.0)
+    pub white_level: f32,   // 0..+1, levels white point (default 1.0)
+}
+
+impl Default for ManualAdjustments {
+    fn default() -> Self {
+        Self {
+            exposure: 0.0,
+            white_balance: 0.0,
+            contrast: 0.0,
+            highlights: 0.0,
+            shadows: 0.0,
+            saturation: 0.0,
+            black_level: 0.0,
+            white_level: 1.0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

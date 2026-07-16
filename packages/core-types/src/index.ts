@@ -70,11 +70,14 @@ export interface RecipeOverrides {
 }
 
 export interface ManualAdjustments {
-  exposure: number; // stops
-  wb_temp_override: number | null;
-  wb_tint_override: number | null;
-  sharpness_override: number | null;
-  vignette: number; // 0.0..1.0
+  exposure: number; // stops, combines additively with recipe exposure comp
+  white_balance: number; // -1..+1, cool..warm temperature shift
+  contrast: number; // -1..+1, S-slope around a 0.5 pivot
+  highlights: number; // -1..+1, recover(-)/boost(+) upper tones
+  shadows: number; // -1..+1, crush(-)/lift(+) lower tones
+  saturation: number; // -1..+1, luma-pivot saturation
+  black_level: number; // 0..+1, levels black point (default 0.0)
+  white_level: number; // 0..+1, levels white point (default 1.0)
 }
 
 export interface Crop {

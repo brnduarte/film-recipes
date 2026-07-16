@@ -216,8 +216,11 @@ const TOLERANCE = 0.002; // ~0.5/255 8-bit levels
 
 let total = 0;
 let failures = 0;
-for (const { name, pixels } of golden) {
-  const recipe = RECIPES[name];
+for (const { name, pixels, manual } of golden) {
+  // "<recipe>+manual" fixtures reuse the base recipe params and layer on the
+  // golden's manual grade (dump_recipe_golden.rs) — strip the suffix to look
+  // up the shared recipe fixture.
+  const recipe = RECIPES[name.replace(/\+manual$/, "")];
   if (!recipe) {
     console.error(`FAIL: no JS-side recipe fixture defined for "${name}"`);
     failures++;
@@ -225,7 +228,7 @@ for (const { name, pixels } of golden) {
   }
   for (const { input, expected } of pixels) {
     total++;
-    const actual = recipeReference(input, recipe, 0);
+    const actual = recipeReference(input, recipe, manual);
     const diffs = actual.map((c, i) => Math.abs(c - expected[i]));
     const maxDiff = Math.max(...diffs);
     const pass = maxDiff <= TOLERANCE;

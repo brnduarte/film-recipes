@@ -35,7 +35,7 @@ export function ClearDataButton({ onCleared }: ClearDataButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={isClearing}
-      className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:border-neutral-500 disabled:opacity-50"
+      className="glass glass-hover rounded-md px-4 py-2 text-sm font-medium text-neutral-200 transition-colors disabled:opacity-50"
     >
       {isClearing ? "Clearing…" : "Clear all app data"}
     </button>

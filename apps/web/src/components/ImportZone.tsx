@@ -5,9 +5,10 @@ const ACCEPTED_EXTENSIONS = ".nef,.raf,.cr2,.cr3,.arw,.dng,.orf";
 interface ImportZoneProps {
   onFileSelected: (file: File) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export function ImportZone({ onFileSelected, disabled }: ImportZoneProps) {
+export function ImportZone({ onFileSelected, disabled, compact }: ImportZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
@@ -24,6 +25,22 @@ export function ImportZone({ onFileSelected, disabled }: ImportZoneProps) {
     event.target.value = "";
   }
 
+  if (compact) {
+    return (
+      <label className="glass glass-hover cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-neutral-200 transition-colors">
+        Open RAW
+        <input
+          id="file"
+          type="file"
+          accept={ACCEPTED_EXTENSIONS}
+          disabled={disabled}
+          onChange={handleFileInputChange}
+          className="hidden"
+        />
+      </label>
+    );
+  }
+
   return (
     <div
       onDragOver={(event) => {
@@ -32,8 +49,8 @@ export function ImportZone({ onFileSelected, disabled }: ImportZoneProps) {
       }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
-      className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-        isDragOver ? "border-neutral-400 bg-neutral-800" : "border-neutral-700 bg-neutral-900"
+      className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center shadow-xl backdrop-blur-xl transition-colors ${
+        isDragOver ? "border-neutral-300/70 bg-white/15" : "border-white/25 bg-white/8"
       } ${disabled ? "opacity-50" : ""}`}
     >
       <p className="text-sm text-neutral-300">Drag a RAW file here, or</p>

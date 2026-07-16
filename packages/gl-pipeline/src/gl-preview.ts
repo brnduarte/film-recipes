@@ -9,7 +9,7 @@ import vertSrc from "./shaders/preview.vert.glsl?raw";
 import debugFragSrc from "./shaders/debug.frag.glsl?raw";
 import recipeFragSrc from "./shaders/recipe.frag.glsl?raw";
 import { computeUniformsForRecipe } from "./recipe-uniforms";
-import type { Recipe } from "@fuji-recipes/core-types";
+import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type)!;
@@ -68,11 +68,11 @@ export class GlPreview {
   /**
    * Cheap, GPU-only redraw — this is what runs on every slider/recipe/mode
    * change. `showOriginal` renders the untouched decode (the "before" side
-   * of the before/after toggle); otherwise `recipe` + `manualExposureStops`
-   * (from ManualAdjustments.exposure) are applied via the generalized
-   * recipe shader.
+   * of the before/after toggle); otherwise `recipe` + `manual`
+   * (ManualAdjustments: exposure + the global grade sliders) are applied via
+   * the generalized recipe shader.
    */
-  draw(showOriginal: boolean, recipe: Recipe, manualExposureStops: number) {
+  draw(showOriginal: boolean, recipe: Recipe, manual: ManualAdjustments) {
     const gl = this.gl;
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.activeTexture(gl.TEXTURE0);
@@ -84,7 +84,7 @@ export class GlPreview {
       gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
       gl.uniform1f(gl.getUniformLocation(program, "u_exposure"), 0);
     } else {
-      const u = computeUniformsForRecipe(recipe, manualExposureStops);
+      const u = computeUniformsForRecipe(recipe, manual);
       const program = this.recipeProgram;
       gl.useProgram(program);
       gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
@@ -97,6 +97,13 @@ export class GlPreview {
       gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), u.colorChromeAmount);
       gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeFxBlueAmount"), u.colorChromeFxBlueAmount);
       gl.uniform1i(gl.getUniformLocation(program, "u_useSepiaTone"), u.useSepiaTone ? 1 : 0);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualWhiteBalance"), u.manualWhiteBalance);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualContrast"), u.manualContrast);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualHighlights"), u.manualHighlights);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualShadows"), u.manualShadows);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualSaturation"), u.manualSaturation);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualBlackLevel"), u.manualBlackLevel);
+      gl.uniform1f(gl.getUniformLocation(program, "u_manualWhiteLevel"), u.manualWhiteLevel);
     }
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);

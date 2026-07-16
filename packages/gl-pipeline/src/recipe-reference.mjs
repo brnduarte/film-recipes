@@ -67,11 +67,23 @@ function dynamicRangeParams(dr, tone) {
   return { shadowLift, highlightPull };
 }
 
-function computeUniformsForRecipe(recipe, manualExposureStops) {
+// Identity manual grade — a no-op, matching ManualAdjustments::default().
+const NEUTRAL_MANUAL = {
+  exposure: 0,
+  white_balance: 0,
+  contrast: 0,
+  highlights: 0,
+  shadows: 0,
+  saturation: 0,
+  black_level: 0,
+  white_level: 1,
+};
+
+function computeUniformsForRecipe(recipe, manual) {
   const { shadowLift, highlightPull } = dynamicRangeParams(recipe.dynamic_range, recipe.tone);
   return {
     wbGain: wbGainForRecipe(recipe.white_balance),
-    exposureStops: recipe.exposure_compensation + manualExposureStops,
+    exposureStops: recipe.exposure_compensation + manual.exposure,
     shadowLift,
     highlightPull,
     useClassicChromeCurve: recipe.film_simulation === "ClassicChrome",
@@ -79,6 +91,13 @@ function computeUniformsForRecipe(recipe, manualExposureStops) {
     colorChromeAmount: strengthFactor(recipe.color_chrome_effect),
     colorChromeFxBlueAmount: strengthFactor(recipe.color_chrome_fx_blue),
     useSepiaTone: recipe.film_simulation === "Sepia",
+    manualWhiteBalance: manual.white_balance,
+    manualContrast: manual.contrast,
+    manualHighlights: manual.highlights,
+    manualShadows: manual.shadows,
+    manualSaturation: manual.saturation,
+    manualBlackLevel: manual.black_level,
+    manualWhiteLevel: manual.white_level,
   };
 }
 
@@ -172,8 +191,8 @@ function sepiaTone([, g]) {
   return [clamp(luma * 1.07, 0, 1), clamp(luma * 0.86, 0, 1), clamp(luma * 0.62, 0, 1)];
 }
 
-export function recipeReference([r, g, b], recipe, manualExposureStops = 0) {
-  const u = computeUniformsForRecipe(recipe, manualExposureStops);
+export function recipeReference([r, g, b], recipe, manual = NEUTRAL_MANUAL) {
+  const u = computeUniformsForRecipe(recipe, manual);
 
   // 1. White balance
   let rgb = [r * u.wbGain[0], g * u.wbGain[1], b * u.wbGain[2]];
@@ -201,6 +220,22 @@ export function recipeReference([r, g, b], recipe, manualExposureStops = 0) {
   if (u.useSepiaTone) {
     rgb = sepiaTone(rgb);
   }
+
+  // 8. Manual global grade (pipeline.rs::apply_manual_grade) — order must
+  // match the Rust mirror exactly.
+  rgb = [rgb[0] * (1.0 + u.manualWhiteBalance * 0.2), rgb[1], rgb[2] * (1.0 - u.manualWhiteBalance * 0.2)];
+  const contrast = 1.0 + u.manualContrast;
+  rgb = rgb.map((c) => (c - 0.5) * contrast + 0.5);
+  rgb = rgb.map((c) => {
+    const highlightWeight = clamp((c - 0.5) * 2.0, 0, 1);
+    const shadowWeight = clamp((0.5 - c) * 2.0, 0, 1);
+    return c + u.manualHighlights * 0.25 * highlightWeight + u.manualShadows * 0.25 * shadowWeight;
+  });
+  const levelsRange = Math.max(u.manualWhiteLevel - u.manualBlackLevel, 1e-3);
+  rgb = rgb.map((c) => (c - u.manualBlackLevel) / levelsRange);
+  const manualLuma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  const sat = 1.0 + u.manualSaturation;
+  rgb = rgb.map((c) => manualLuma + (c - manualLuma) * sat);
 
   return rgb.map((c) => clamp(c, 0, 1));
 }

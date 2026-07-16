@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlPreview } from "@fuji-recipes/gl-pipeline";
-import { decode, exportJpeg, getBuiltInRecipes, getNamedRecipes } from "@fuji-recipes/processing-web";
-import { BUILT_IN_RECIPES, NAMED_RECIPES } from "@fuji-recipes/recipes-catalog";
-import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
+import { decode, exportJpeg, getNamedRecipes } from "@fuji-recipes/processing-web";
+import { NAMED_RECIPES } from "@fuji-recipes/recipes-catalog";
+import type { Recipe } from "@fuji-recipes/core-types";
 import { useEditorStore } from "./store";
 import { ImportZone } from "./components/ImportZone";
 import { RecipeSelector } from "./components/RecipeSelector";
+import { AdjustmentsPanel } from "./components/AdjustmentsPanel";
 import { BeforeAfterToggle } from "./components/BeforeAfterToggle";
 import { ClearDataButton } from "./components/ClearDataButton";
 
@@ -16,31 +17,30 @@ export function App() {
   const previewRef = useRef<GlPreview | null>(null);
   const [isDecoding, setIsDecoding] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [canvasSize, setCanvasSize] = useState({ w: 960, h: 640 });
 
   const status = useEditorStore((s) => s.status);
   const decoded = useEditorStore((s) => s.decoded);
-  const recipes = useEditorStore((s) => s.recipes);
   const namedRecipes = useEditorStore((s) => s.namedRecipes);
   const selectedRecipeId = useEditorStore((s) => s.selectedRecipeId);
-  const manualExposure = useEditorStore((s) => s.manualExposure);
+  const manual = useEditorStore((s) => s.manual);
   const showOriginal = useEditorStore((s) => s.showOriginal);
   const setStatus = useEditorStore((s) => s.setStatus);
-  const setRecipes = useEditorStore((s) => s.setRecipes);
   const setNamedRecipes = useEditorStore((s) => s.setNamedRecipes);
   const setDecoded = useEditorStore((s) => s.setDecoded);
   const setSelectedRecipeId = useEditorStore((s) => s.setSelectedRecipeId);
-  const setManualExposure = useEditorStore((s) => s.setManualExposure);
   const setShowOriginal = useEditorStore((s) => s.setShowOriginal);
+  const resetManual = useEditorStore((s) => s.resetManual);
 
-  // One-time setup: compile the GL preview program and load both the built-in
-  // film simulations and the named community recipes from Rust (via WASM).
+  // One-time setup: compile the GL preview program and load the named
+  // community recipes from Rust (via WASM).
   useEffect(() => {
     if (canvasRef.current) {
       previewRef.current = new GlPreview(canvasRef.current);
     }
-    Promise.all([getBuiltInRecipes(), getNamedRecipes()])
-      .then(([builtIn, named]) => {
-        setRecipes(builtIn);
+    getNamedRecipes()
+      .then((named) => {
         setNamedRecipes(named);
         setStatus("WASM ready. Choose a RAW file.");
       })
@@ -48,21 +48,17 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resolve the selected catalog id to an actual Recipe: built-ins pair to a
-  // Recipe by film_simulation; named recipes pair positionally with the Rust
-  // `named_recipes_json` order that NAMED_RECIPES mirrors.
+  // Resolve the selected catalog id to an actual Recipe: named recipes pair
+  // positionally with the Rust `named_recipes_json` order that NAMED_RECIPES
+  // mirrors.
   const recipesById = useMemo(() => {
     const map = new Map<string, Recipe>();
-    for (const entry of BUILT_IN_RECIPES) {
-      const recipe = recipes.find((r) => r.film_simulation === entry.filmSimulation);
-      if (recipe) map.set(entry.id, recipe);
-    }
     NAMED_RECIPES.forEach((entry, i) => {
       const recipe = namedRecipes[i];
       if (recipe) map.set(entry.id, recipe);
     });
     return map;
-  }, [recipes, namedRecipes]);
+  }, [namedRecipes]);
 
   const selectedRecipe = recipesById.get(selectedRecipeId) ?? null;
 
@@ -70,8 +66,8 @@ export function App() {
   // re-decode, per the plan's "decode once, GPU-only interaction" design.
   useEffect(() => {
     if (!previewRef.current || !decoded || !selectedRecipe) return;
-    previewRef.current.draw(showOriginal, selectedRecipe, manualExposure);
-  }, [decoded, selectedRecipe, manualExposure, showOriginal]);
+    previewRef.current.draw(showOriginal, selectedRecipe, manual);
+  }, [decoded, selectedRecipe, manual, showOriginal]);
 
   async function handleFileSelected(file: File) {
     if (!previewRef.current) return;
@@ -80,11 +76,9 @@ export function App() {
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const image = await decode(bytes);
-      if (canvasRef.current) {
-        canvasRef.current.width = image.width;
-        canvasRef.current.height = image.height;
-      }
       previewRef.current.uploadImage(image.rgba, image.width, image.height);
+      setCanvasSize({ w: image.width, h: image.height });
+      setZoom(1);
       setDecoded(image);
       setStatus(`Decoded ${image.width}x${image.height}. Pick a recipe and adjust exposure below.`);
     } catch (err) {
@@ -99,13 +93,6 @@ export function App() {
     setIsExporting(true);
     setStatus("Exporting JPEG…");
     try {
-      const manual: ManualAdjustments = {
-        exposure: manualExposure,
-        wb_temp_override: null,
-        wb_tint_override: null,
-        sharpness_override: null,
-        vignette: 0,
-      };
       const jpegBytes = await exportJpeg(decoded, selectedRecipe, manual, EXPORT_JPEG_QUALITY);
       const blob = new Blob([new Uint8Array(jpegBytes)], { type: "image/jpeg" });
       const url = URL.createObjectURL(blob);
@@ -122,53 +109,125 @@ export function App() {
     }
   }
 
+  // Clearing app data also unloads the current image from the screen and
+  // resets the edit state, so the user returns to the empty import prompt.
+  function handleCleared() {
+    setDecoded(null);
+    resetManual();
+    setShowOriginal(false);
+    setCanvasSize({ w: 960, h: 640 });
+    setZoom(1);
+    setStatus("All app data cleared.");
+  }
+
+  const ZOOM_STEP = 1.25;
+  const ZOOM_MIN = 1;
+  const ZOOM_MAX = 6;
+  function zoomIn() {
+    setZoom((z) => Math.min(ZOOM_MAX, +(z * ZOOM_STEP).toFixed(2)));
+  }
+  function zoomOut() {
+    setZoom((z) => Math.max(ZOOM_MIN, +(z / ZOOM_STEP).toFixed(2)));
+  }
+
   const hasImage = decoded !== null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 bg-neutral-950 p-6 text-neutral-100">
-      <header className="flex items-start justify-between gap-4">
+    <main className="relative h-screen w-screen overflow-hidden bg-neutral-800 text-neutral-100">
+      {/* Image stage. Canvas is always mounted so GlPreview can attach on
+          first render; it stays hidden until an image is decoded. The canvas
+          is sized to the full viewport height with width following the
+          image's aspect ratio (`h-full w-auto`) — so portrait images fit the
+          screen height without being rotated or stretched. `zoom` scales it
+          up for inspecting detail; `overflow-hidden` on <main> clips it. */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <canvas
+          ref={canvasRef}
+          width={canvasSize.w}
+          height={canvasSize.h}
+          style={{ transform: `scale(${zoom})` }}
+          className={`h-full w-auto origin-center ${hasImage ? "" : "invisible"}`}
+        />
+      </div>
+
+      {/* Top overlay: title/status on the left, actions on the right. */}
+      <header className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4">
         <div>
-          <h1 className="text-xl font-semibold">Fuji Recipes</h1>
-          <p id="status" className="text-sm text-neutral-400">
+          <h1 className="text-lg font-semibold">Fuji Recipes</h1>
+          <p id="status" className="text-xs text-neutral-300">
             {status}
           </p>
         </div>
-        <ClearDataButton onCleared={() => setStatus("All app data cleared.")} />
+        <div className="flex items-center gap-2">
+          {hasImage && (
+            <>
+              <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} compact />
+              <BeforeAfterToggle showOriginal={showOriginal} onShowOriginalChange={setShowOriginal} />
+              <button
+                id="export-jpeg"
+                type="button"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="glass glass-hover rounded-md px-4 py-1.5 text-sm font-medium text-neutral-50 transition-colors disabled:opacity-50"
+              >
+                {isExporting ? "Exporting…" : "Export JPEG"}
+              </button>
+            </>
+          )}
+          <ClearDataButton onCleared={handleCleared} />
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-4">
-          <canvas ref={canvasRef} width={960} height={640} className="w-full rounded-lg bg-black" />
-          {hasImage && <BeforeAfterToggle showOriginal={showOriginal} onShowOriginalChange={setShowOriginal} />}
-          <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} />
+      {/* Centered import prompt while there's no image. */}
+      {!hasImage && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} />
+          </div>
         </div>
+      )}
 
-        <div className="flex flex-col gap-4">
-          <RecipeSelector value={selectedRecipeId} onValueChange={setSelectedRecipeId} disabled={!hasImage} />
-          <label className="flex flex-col gap-1 text-sm text-neutral-300">
-            Exposure {manualExposure.toFixed(2)} EV
-            <input
-              id="exposure"
-              type="range"
-              min={-2}
-              max={2}
-              step={0.01}
-              value={manualExposure}
-              disabled={!hasImage || showOriginal}
-              onChange={(event) => setManualExposure(Number(event.target.value))}
-            />
-          </label>
+      {/* Zoom controls for inspecting detail (scales the full-res canvas). */}
+      {hasImage && (
+        <div className="glass glass-dark absolute bottom-3 right-4 z-30 flex items-center gap-1 rounded-full p-1 text-neutral-100">
           <button
-            id="export-jpeg"
+            id="zoom-out"
             type="button"
-            onClick={handleExport}
-            disabled={!hasImage || isExporting}
-            className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
+            onClick={zoomOut}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="Zoom out"
+            className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
           >
-            {isExporting ? "Exporting…" : "Export JPEG"}
+            −
+          </button>
+          <span className="min-w-12 text-center text-xs tabular-nums text-neutral-300">{Math.round(zoom * 100)}%</span>
+          <button
+            id="zoom-in"
+            type="button"
+            onClick={zoomIn}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="Zoom in"
+            className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
+          >
+            +
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Recipe chip strip along the bottom, sitting in front of a 50px
+          dark-grey footer whose gradient goes from transparent at the top to
+          ~80% opacity at the bottom. */}
+      {hasImage && (
+        <div className="absolute inset-x-0 bottom-0 z-20">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[50px] bg-gradient-to-b from-transparent to-neutral-900/80" />
+          <div className="relative px-4 pb-3 pt-6">
+            <RecipeSelector value={selectedRecipeId} onValueChange={setSelectedRecipeId} disabled={!hasImage} />
+          </div>
+        </div>
+      )}
+
+      {/* Floating, draggable adjustments window. */}
+      {hasImage && <AdjustmentsPanel disabled={showOriginal} />}
     </main>
   );
 }

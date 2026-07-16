@@ -88,36 +88,11 @@ pub fn export_jpeg(
         .map_err(|e| JsError::new(&e.to_string()))
 }
 
-/// Returns all 12 built-in recipes as a JSON-serialized `Recipe[]`, keyed by
-/// each `Recipe`'s own `film_simulation` field. This is the runtime source
-/// the UI's recipe selector reads actual recipe values from — see
-/// packages/recipes-catalog/src/index.ts's doc comment: display metadata
-/// (name/description) lives in TS, but the numeric recipe values stay
-/// single-sourced here in Rust rather than being hand-duplicated in TS.
-#[wasm_bindgen]
-pub fn built_in_recipes_json() -> String {
-    let recipes = vec![
-        recipe_engine::recipe::Recipe::provia_baseline(),
-        recipe_engine::velvia::velvia_recipe(),
-        recipe_engine::astia::astia_recipe(),
-        recipe_engine::classic_chrome::classic_chrome_recipe(),
-        recipe_engine::classic_neg::classic_neg_recipe(),
-        recipe_engine::pro_neg::pro_neg_hi_recipe(),
-        recipe_engine::pro_neg::pro_neg_std_recipe(),
-        recipe_engine::eterna::eterna_recipe(),
-        recipe_engine::eterna::eterna_bleach_bypass_recipe(),
-        recipe_engine::acros::acros_recipe(),
-        recipe_engine::monochrome::monochrome_recipe(),
-        recipe_engine::monochrome::sepia_recipe(),
-    ];
-    serde_json::to_string(&recipes).expect("Recipe serialization is infallible")
-}
-
 /// Returns the named community "recipes" (Kodak Portra 400, Gold 200, etc.)
 /// as a JSON-serialized `Recipe[]`, in the same fixed order as the display
-/// metadata in packages/recipes-catalog's `NAMED_RECIPES`. Like
-/// `built_in_recipes_json`, the numeric values stay single-sourced in Rust
-/// (recipe_engine::named_recipes); only id/name/description live in TS.
+/// metadata in packages/recipes-catalog's `NAMED_RECIPES`. The numeric values
+/// stay single-sourced in Rust (recipe_engine::named_recipes); only
+/// id/name/description live in TS.
 #[wasm_bindgen]
 pub fn named_recipes_json() -> String {
     let recipes = vec![

@@ -13,6 +13,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 struct RecipeGolden {
     name: &'static str,
+    manual: ManualAdjustments,
     pixels: Vec<PixelGolden>,
 }
 
@@ -31,18 +32,33 @@ const TEST_PIXELS: &[[f32; 3]] = &[
     [0.1, 0.3, 0.9],
 ];
 
+fn golden_with(name: &'static str, recipe: &Recipe, manual: ManualAdjustments) -> RecipeGolden {
+    let pixels = TEST_PIXELS
+        .iter()
+        .map(|&input| PixelGolden { input, expected: apply_recipe_to_pixel(input, recipe, &manual) })
+        .collect();
+    RecipeGolden { name, manual, pixels }
+}
+
 fn golden_for(name: &'static str, recipe: &Recipe) -> RecipeGolden {
-    let manual = ManualAdjustments::default();
-    RecipeGolden {
-        name,
-        pixels: TEST_PIXELS
-            .iter()
-            .map(|&input| PixelGolden { input, expected: apply_recipe_to_pixel(input, recipe, &manual) })
-            .collect(),
-    }
+    golden_with(name, recipe, ManualAdjustments::default())
 }
 
 fn main() {
+    // A non-default manual grade exercised on two recipes so the parity
+    // harness covers pipeline.rs::apply_manual_grade, not just the default
+    // (no-op) path.
+    let manual_grade = ManualAdjustments {
+        exposure: 0.0,
+        white_balance: 0.6,
+        contrast: 0.35,
+        highlights: -0.5,
+        shadows: 0.4,
+        saturation: 0.25,
+        black_level: 0.05,
+        white_level: 0.92,
+    };
+
     let goldens = vec![
         golden_for("Provia", &Recipe::provia_baseline()),
         golden_for("Velvia", &recipe_engine::velvia::velvia_recipe()),
@@ -62,6 +78,8 @@ fn main() {
         golden_for("bright-kodak", &recipe_engine::named_recipes::bright_kodak_recipe()),
         golden_for("grainy-day", &recipe_engine::named_recipes::grainy_day_recipe()),
         golden_for("wes-anderson", &recipe_engine::named_recipes::wes_anderson_recipe()),
+        golden_with("Provia+manual", &Recipe::provia_baseline(), manual_grade.clone()),
+        golden_with("wes-anderson+manual", &recipe_engine::named_recipes::wes_anderson_recipe(), manual_grade),
     ];
 
     println!("{}", serde_json::to_string_pretty(&goldens).unwrap());

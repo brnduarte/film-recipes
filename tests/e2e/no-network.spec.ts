@@ -41,7 +41,7 @@ test("no external network requests during import, edit, or export", async ({ pag
 
   // Edit: pick a recipe, drag the exposure slider, and toggle before/after —
   // the interactive paths that touch the recipe pipeline per frame.
-  await page.locator("#recipe-classicchrome").click();
+  await page.locator("#recipe-kodak-portra-400").click();
   await page.locator("#exposure").fill("0.5");
   await page.locator("#before-after-toggle").click();
   await page.locator("#before-after-toggle").click();

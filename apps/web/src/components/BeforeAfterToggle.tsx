@@ -15,7 +15,7 @@ export function BeforeAfterToggle({ showOriginal, onShowOriginalChange, disabled
         checked={!showOriginal}
         onCheckedChange={(checked) => onShowOriginalChange(!checked)}
         disabled={disabled}
-        className="relative h-5 w-9 rounded-full bg-neutral-700 outline-none data-[state=checked]:bg-neutral-100 disabled:opacity-50"
+        className="relative h-5 w-9 rounded-full border border-white/20 bg-white/15 outline-none backdrop-blur data-[state=checked]:bg-neutral-100 disabled:opacity-50"
         aria-label="Toggle before/after preview"
       >
         <Switch.Thumb className="block size-4 translate-x-0.5 rounded-full bg-neutral-100 transition-transform data-[state=checked]:translate-x-4 data-[state=checked]:bg-neutral-900" />

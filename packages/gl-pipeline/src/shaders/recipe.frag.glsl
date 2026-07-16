@@ -43,6 +43,15 @@ uniform float u_colorChromeAmount;      // strength_factor(color_chrome_effect)
 uniform float u_colorChromeFxBlueAmount; // strength_factor(color_chrome_fx_blue)
 uniform bool u_useSepiaTone;            // film_simulation == Sepia, monochrome.rs::apply_sepia_tone
 
+// Manual global grade (ManualAdjustments), pipeline.rs::apply_manual_grade.
+uniform float u_manualWhiteBalance; // -1..+1 cool..warm
+uniform float u_manualContrast;     // -1..+1
+uniform float u_manualHighlights;   // -1..+1
+uniform float u_manualShadows;      // -1..+1
+uniform float u_manualSaturation;   // -1..+1
+uniform float u_manualBlackLevel;   // levels black point
+uniform float u_manualWhiteLevel;   // levels white point
+
 in vec2 v_uv;
 out vec4 outColor;
 
@@ -176,6 +185,19 @@ void main() {
   if (u_useSepiaTone) {
     rgb = sepiaTone(rgb);
   }
+
+  // 8. Manual global grade (pipeline.rs::apply_manual_grade) — order must
+  // match the Rust mirror exactly.
+  rgb.r *= 1.0 + u_manualWhiteBalance * 0.2;
+  rgb.b *= 1.0 - u_manualWhiteBalance * 0.2;
+  rgb = (rgb - 0.5) * (1.0 + u_manualContrast) + 0.5;
+  vec3 highlightWeight = clamp((rgb - 0.5) * 2.0, 0.0, 1.0);
+  vec3 shadowWeight = clamp((0.5 - rgb) * 2.0, 0.0, 1.0);
+  rgb = rgb + u_manualHighlights * 0.25 * highlightWeight + u_manualShadows * 0.25 * shadowWeight;
+  float levelsRange = max(u_manualWhiteLevel - u_manualBlackLevel, 1e-3);
+  rgb = (rgb - u_manualBlackLevel) / levelsRange;
+  float manualLuma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+  rgb = manualLuma + (rgb - manualLuma) * (1.0 + u_manualSaturation);
 
   outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

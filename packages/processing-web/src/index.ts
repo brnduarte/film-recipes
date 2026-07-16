@@ -17,13 +17,7 @@
 // large RAW decodes don't block the UI thread) is a documented Phase 1/2
 // follow-up, not yet done.
 
-import init, {
-  built_in_recipes_json,
-  decode_raw,
-  export_jpeg,
-  init_panic_hook,
-  named_recipes_json,
-} from "./wasm/wasm_bridge.js";
+import init, { decode_raw, export_jpeg, init_panic_hook, named_recipes_json } from "./wasm/wasm_bridge.js";
 import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
 
 export interface DecodedImage {
@@ -65,18 +59,6 @@ export async function exportJpeg(
 ): Promise<Uint8Array> {
   await ensureWasmInit();
   return export_jpeg(image.rgba, image.width, image.height, JSON.stringify(recipe), JSON.stringify(manual), quality);
-}
-
-/**
- * The Phase 1 built-in recipes (Provia, Velvia, Classic Chrome, Acros), read
- * from Rust — see `built_in_recipes_json` in crates/wasm-bridge/src/lib.rs.
- * This is the runtime source of actual `Recipe` values; keyed by each
- * recipe's own `film_simulation` for pairing with recipes-catalog's display
- * metadata.
- */
-export async function getBuiltInRecipes(): Promise<Recipe[]> {
-  await ensureWasmInit();
-  return JSON.parse(built_in_recipes_json()) as Recipe[];
 }
 
 /**
