@@ -43,6 +43,12 @@ function signed(v: number): string {
   return v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2);
 }
 
+/** Value's position within [min, max] as a 0–100 percentage, for the slider's
+ *  filled-track width (`--pct`). */
+function pct(value: number, min: number, max: number): number {
+  return ((value - min) / (max - min)) * 100;
+}
+
 const PANEL_WIDTH = 288;
 
 function clampPosition(x: number, y: number) {
@@ -154,6 +160,7 @@ export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
                 value={manual[slider.field]}
                 disabled={disabled}
                 onChange={(event) => setManual({ [slider.field]: Number(event.target.value) })}
+                style={{ "--pct": `${pct(manual[slider.field], slider.min, slider.max)}%` } as React.CSSProperties}
               />
             </label>
           ))}
@@ -199,6 +206,7 @@ export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
                   value={grade.intensity}
                   disabled={disabled}
                   onChange={(event) => setColorGrade({ intensity: Number(event.target.value) })}
+                  style={{ "--pct": `${pct(grade.intensity, 0, 1)}%` } as React.CSSProperties}
                 />
               </label>
 

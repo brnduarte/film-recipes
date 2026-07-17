@@ -1,0 +1,80 @@
+name: Deploy web app to GitHub Pages
+
+# Builds the WASM decoder + the Vite web app and publishes it to GitHub Pages.
+# The WASM output (packages/processing-web/src/wasm) is gitignored, so it is
+# rebuilt here from the Rust crates with wasm-pack on every deploy.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permissions required by actions/deploy-pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy at a time; a newer push cancels an in-flight run.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust (with wasm target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build WASM decoder
+        run: pnpm --filter @film-recipes/processing-web build:wasm
+
+      - name: Build web app
+        env:
+          # Project pages are served from https://<owner>.github.io/<repo>/,
+          # so assets must be prefixed with /<repo>/. For a user page or a
+          # custom domain served at the root, set VITE_BASE to "/" (or drop it).
+          VITE_BASE: /${{ github.event.repository.name }}/
+          # Google sign-in client id — set as a repository variable/secret.
+          # Missing = the app renders a "sign-in not configured" notice.
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        run: pnpm --filter web build
+
+      - name: Disable Jekyll processing
+        run: touch apps/web/dist/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

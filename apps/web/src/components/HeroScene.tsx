@@ -8,17 +8,23 @@
 import { useEffect, useState } from "react";
 
 /** Bundled hero photos (public/hero/*), covering people, landscape, and
- *  objects. Local paths only — served from 'self', CSP-compliant. */
+ *  objects. Local paths only — served from 'self', CSP-compliant. Prefixed
+ *  with Vite's BASE_URL so they resolve under a subpath deploy (e.g. GitHub
+ *  project pages at /<repo>/) as well as at the domain root. */
 const HERO_IMAGES = [
-  "/hero/portrait.jpg",
-  "/hero/landscape.jpg",
-  "/hero/coast.jpg",
-  "/hero/street.jpg",
-  "/hero/object.jpg",
-];
+  "hero/portrait.jpg",
+  "hero/landscape.jpg",
+  "hero/coast.jpg",
+  "hero/street.jpg",
+  "hero/object.jpg",
+].map((path) => `${import.meta.env.BASE_URL}${path}`);
 
 /** How long each background photo stays before crossfading to the next. */
 const IMAGE_INTERVAL_MS = 15000;
+
+/** The "before" side is knocked back ~25% in saturation so the recipe-graded
+ *  "after" side stands out more by comparison. */
+const ORIGINAL_FILTER = "saturate(0.75)";
 
 /** Recipe looks approximated as CSS filter stacks for the hero demo only —
  *  the real editor renders these through the WASM/WebGL pipeline, not filters. */
@@ -80,13 +86,21 @@ export function HeroScene() {
         alt=""
         aria-hidden
         className="absolute inset-0 h-full w-full object-cover"
+        style={{ filter: ORIGINAL_FILTER }}
       />
 
       {/* Current photo + before/after demo, fades in over the previous. Keyed so
           the crossfade restarts cleanly on each new photo. */}
       <div key={index} className="animate-fade-in absolute inset-0">
-        {/* Original (before) — fills the whole frame; shows to the LEFT of the split. */}
-        <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+        {/* Original (before) — fills the whole frame; shows to the LEFT of the split.
+            Slightly desaturated so the graded "after" side reads as more vivid. */}
+        <img
+          src={src}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ filter: ORIGINAL_FILTER }}
+        />
 
         {/* Graded (after) — same photo, clipped to everything RIGHT of the split
             so it reads as a true before/after; filter cross-fades between looks.

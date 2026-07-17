@@ -53,6 +53,12 @@ interface EditorState {
   resetManual: () => void;
   setSplitX: (splitX: number) => void;
   setRecipeThumbnails: (thumbnails: Record<string, string>) => void;
+  /** Reset all per-session editor state to defaults. Called when a new session
+   *  begins (sign-in) so one user never sees the previous user's photo,
+   *  recipe, or adjustments — the store is a module singleton that outlives
+   *  sign-out, so it must be explicitly cleared. Preserves loaded-once data
+   *  (namedRecipes) and the WASM status. */
+  resetSession: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -74,4 +80,12 @@ export const useEditorStore = create<EditorState>((set) => ({
   resetManual: () => set({ manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } } }),
   setSplitX: (splitX) => set({ splitX }),
   setRecipeThumbnails: (recipeThumbnails) => set({ recipeThumbnails }),
+  resetSession: () =>
+    set({
+      decoded: null,
+      selectedRecipeId: "kodak-portra-400",
+      manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } },
+      splitX: 0.5,
+      recipeThumbnails: {},
+    }),
 }));

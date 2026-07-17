@@ -4,10 +4,20 @@
 
 import { HeroScene } from "../components/HeroScene";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
-import { useAuthStore } from "../auth";
+import { useAuthStore, type AuthUser } from "../auth";
+import { useEditorStore } from "../store";
 
 export function Home() {
   const signIn = useAuthStore((s) => s.signIn);
+  const resetSession = useEditorStore((s) => s.resetSession);
+
+  // Start every new session from defaults. The editor store is a module
+  // singleton that survives sign-out, so without this a fresh sign-in would
+  // inherit the previous user's photo, recipe, and adjustments.
+  function handleSignIn(user: AuthUser) {
+    resetSession();
+    signIn(user);
+  }
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
@@ -24,22 +34,20 @@ export function Home() {
         </div>
 
         <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
-          Give your photos the soul of real film.
+          Give your photos a cinematic look.
         </h1>
 
         <p className="max-w-md text-base leading-relaxed text-neutral-300">
-          Apply authentic film-simulation recipes to any photo, right in your browser.
-          Every edit runs on your device — your images never leave your computer and nothing is
-          ever uploaded.
+          Transform your photos with authentic film simulation recipes. Stylish colors with total
+          privacy.
         </p>
 
         <div className="flex flex-col gap-3">
-          <GoogleLoginButton onSignIn={signIn} />
+          <GoogleLoginButton onSignIn={handleSignIn} />
           <p className="text-xs text-neutral-400">
-            We use Google only to sign you in. No photos, edits, or personal data are stored on our
-            servers — read our{" "}
+            Read our{" "}
             <a href="#/terms" className="text-neutral-200 underline underline-offset-2 hover:text-white">
-              Terms &amp; Privacy
+              Terms &amp; Conditions
             </a>
             .
           </p>
