@@ -62,11 +62,13 @@ function clampPosition(x: number, y: number) {
 
 interface AdjustmentsPanelProps {
   disabled?: boolean;
+  /** Mobile: open centered on screen instead of docked near the top-right. */
+  initialCenter?: boolean;
 }
 
 type Tab = "adjust" | "grade";
 
-export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
+export function AdjustmentsPanel({ disabled, initialCenter }: AdjustmentsPanelProps) {
   const manual = useEditorStore((s) => s.manual);
   const setManual = useEditorStore((s) => s.setManual);
   const setColorGrade = useEditorStore((s) => s.setColorGrade);
@@ -79,9 +81,13 @@ export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
     setColorGrade({ harmony, enabled: true, stops: stopsForHarmony(harmony) });
   }
 
-  const [pos, setPos] = useState(() =>
-    clampPosition(typeof window === "undefined" ? 0 : window.innerWidth - PANEL_WIDTH - 24, 88),
-  );
+  const [pos, setPos] = useState(() => {
+    if (typeof window === "undefined") return clampPosition(0, 88);
+    // Mobile opens centered; desktop docks near the top-right.
+    const x = initialCenter ? (window.innerWidth - PANEL_WIDTH) / 2 : window.innerWidth - PANEL_WIDTH - 24;
+    const y = initialCenter ? Math.max(88, window.innerHeight * 0.5 - 220) : 88;
+    return clampPosition(x, y);
+  });
   const dragOffset = useRef<{ dx: number; dy: number } | null>(null);
 
   function handleDragStart(event: ReactPointerEvent<HTMLDivElement>) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlPreview, RecipeThumbnailRenderer } from "@film-recipes/gl-pipeline";
 import { decode, exportJpeg, getNamedRecipes } from "@film-recipes/processing-web";
 import { NAMED_RECIPES } from "@film-recipes/recipes-catalog";
@@ -6,11 +6,15 @@ import { clearAllData } from "@film-recipes/storage";
 import type { Recipe } from "@film-recipes/core-types";
 import { useEditorStore, NEUTRAL_MANUAL } from "./store";
 import { useAuthStore } from "./auth";
+import { useIsMobile, isMobileViewport } from "./hooks/useIsMobile";
+import { useImageGestures } from "./hooks/useImageGestures";
 import { ImportZone } from "./components/ImportZone";
 import { RecipeSelector } from "./components/RecipeSelector";
 import { AdjustmentsPanel } from "./components/AdjustmentsPanel";
 import { IconSidebar } from "./components/IconSidebar";
 import { SplitSlider } from "./components/SplitSlider";
+import { MobileTopBar } from "./components/mobile/MobileTopBar";
+import { RecipeCarousel } from "./components/mobile/RecipeCarousel";
 
 const EXPORT_JPEG_QUALITY = 92;
 
@@ -23,7 +27,9 @@ export function App() {
   const [isClearing, setIsClearing] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [canvasSize, setCanvasSize] = useState({ w: 960, h: 640 });
-  const [adjustmentsOpen, setAdjustmentsOpen] = useState(true);
+  // Adjustments start hidden on mobile (revealed via the top-bar toggle) and
+  // docked-open on desktop.
+  const [adjustmentsOpen, setAdjustmentsOpen] = useState(() => !isMobileViewport());
 
   const status = useEditorStore((s) => s.status);
   const decoded = useEditorStore((s) => s.decoded);
@@ -40,6 +46,18 @@ export function App() {
   const resetManual = useEditorStore((s) => s.resetManual);
   const setRecipeThumbnails = useEditorStore((s) => s.setRecipeThumbnails);
   const signOut = useAuthStore((s) => s.signOut);
+
+  const isMobile = useIsMobile();
+
+  // Mobile shows the fully-graded recipe (split at 0). Press-and-hold on the
+  // image temporarily swings the split to 1 to reveal the untouched original.
+  const handlePeek = useCallback((peeking: boolean) => setSplitX(peeking ? 1 : 0), [setSplitX]);
+  const gestures = useImageGestures({ enabled: isMobile, onPeekChange: handlePeek });
+
+  // Entering the mobile layout parks the before/after split on the recipe.
+  useEffect(() => {
+    if (isMobile) setSplitX(0);
+  }, [isMobile, setSplitX]);
 
   // One-time setup: compile the GL preview program and load the named
   // community recipes from Rust (via WASM).
@@ -188,36 +206,38 @@ export function App() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-neutral-800 text-neutral-100">
-      {/* Image stage. Canvas is always mounted so GlPreview can attach on
-          first render; it stays hidden until an image is decoded. `zoom`
-          scales it up for inspecting detail; `overflow-hidden` on <main>
-          clips it. The stage insets to the right of the icon rail + recipe
-          panel so the picture is never hidden behind them. */}
+      {/* Shared image stage. The canvas is always mounted (never remounted on a
+          mobile/desktop swap) so GlPreview keeps its context and uploaded
+          image. On desktop it insets right of the rail + recipe panel and is
+          scaled by the zoom buttons; on mobile it runs full-bleed and is
+          panned/pinch-zoomed via touch gestures. */}
       <div
-        className={`absolute inset-0 flex items-center justify-center p-4 transition-all duration-500 ease-out ${stagePadding}`}
+        className={
+          isMobile
+            ? "absolute inset-0 flex items-center justify-center"
+            : `absolute inset-0 flex items-center justify-center p-4 transition-all duration-500 ease-out ${stagePadding}`
+        }
+        style={isMobile ? { touchAction: "none" } : undefined}
+        {...(isMobile ? gestures.handlers : {})}
       >
         <canvas
           ref={canvasRef}
           width={canvasSize.w}
           height={canvasSize.h}
-          style={{ transform: `scale(${zoom})` }}
-          className={`max-h-full max-w-full origin-center rounded-lg transition-opacity duration-500 ease-out ${
-            hasImage && !isDecoding ? "opacity-100" : "opacity-0"
-          }`}
+          style={
+            isMobile
+              ? {
+                  transform: `translate3d(${gestures.transform.x}px, ${gestures.transform.y}px, 0) scale(${gestures.transform.scale})`,
+                }
+              : { transform: `scale(${zoom})` }
+          }
+          className={`max-h-full max-w-full origin-center transition-opacity duration-500 ease-out ${
+            isMobile ? "" : "rounded-lg"
+          } ${hasImage && !isDecoding ? "opacity-100" : "opacity-0"}`}
         />
       </div>
 
-      {/* Draggable before/after divider laid over the preview. */}
-      {hasImage && !isDecoding && (
-        <SplitSlider
-          canvasRef={canvasRef}
-          splitX={splitX}
-          onChange={setSplitX}
-          deps={[canvasSize.w, canvasSize.h, zoom, adjustmentsOpen]}
-        />
-      )}
-
-      {/* Loading veil shown while a file is being decoded. */}
+      {/* Loading veil shown while a file is being decoded (shared). */}
       {isDecoding && (
         <div className="animate-fade-in absolute inset-0 z-40 flex items-center justify-center bg-neutral-900/40 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
@@ -227,87 +247,129 @@ export function App() {
         </div>
       )}
 
-      {/* Collapsed icon rail on the far left (logo, tools, login). */}
-      <IconSidebar
-        hasImage={hasImage}
-        adjustmentsOpen={adjustmentsOpen}
-        onToggleAdjustments={() => setAdjustmentsOpen((v) => !v)}
-        onFileSelected={handleFileSelected}
-        isDecoding={isDecoding}
-        onExport={handleExport}
-        isExporting={isExporting}
-        onClearData={handleClearData}
-        isClearing={isClearing}
-        onLogin={signOut}
-      />
+      {isMobile ? (
+        <>
+          <MobileTopBar
+            hasImage={hasImage}
+            adjustmentsOpen={adjustmentsOpen}
+            onToggleAdjustments={() => setAdjustmentsOpen((v) => !v)}
+            onFileSelected={handleFileSelected}
+            isDecoding={isDecoding}
+            onExport={handleExport}
+            isExporting={isExporting}
+            onLogout={signOut}
+          />
 
-      {/* Recipe list panel, docked to the right edge of the icon rail. */}
-      {hasImage && (
-        <aside className="animate-slide-in-left absolute inset-y-0 left-14 z-20 flex w-[272px] flex-col border-r border-white/10 bg-neutral-900/70 backdrop-blur-xl">
-          <div className="px-4 pb-3 pt-4">
-            <h1 className="text-base font-semibold">Film Recipes</h1>
-            <p id="status" className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
-              {status}
-            </p>
-          </div>
-          <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Recipes</div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-            <RecipeSelector
+          {hasImage ? (
+            <RecipeCarousel
               value={selectedRecipeId}
               onValueChange={setSelectedRecipeId}
               disabled={!hasImage}
               thumbnails={recipeThumbnails}
             />
-          </div>
-        </aside>
-      )}
-
-      {/* Empty state: title + centered import prompt while there's no image. */}
-      {!hasImage && (
-        <>
-          <div className="absolute left-20 top-4 z-10">
-            <h1 className="text-lg font-semibold">Film Recipes</h1>
-            <p id="status" className="text-xs text-neutral-300">
-              {status}
-            </p>
-          </div>
-          <div className="absolute inset-0 z-10 flex items-center justify-center p-6 pl-14">
-            <div className="animate-rise-in w-full max-w-md">
-              <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} />
+          ) : (
+            <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+              <div className="animate-rise-in w-full max-w-md">
+                <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} />
+              </div>
             </div>
-          </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Draggable before/after divider laid over the preview. */}
+          {hasImage && !isDecoding && (
+            <SplitSlider
+              canvasRef={canvasRef}
+              splitX={splitX}
+              onChange={setSplitX}
+              deps={[canvasSize.w, canvasSize.h, zoom, adjustmentsOpen]}
+            />
+          )}
+
+          {/* Collapsed icon rail on the far left (logo, tools, login). */}
+          <IconSidebar
+            hasImage={hasImage}
+            adjustmentsOpen={adjustmentsOpen}
+            onToggleAdjustments={() => setAdjustmentsOpen((v) => !v)}
+            onFileSelected={handleFileSelected}
+            isDecoding={isDecoding}
+            onExport={handleExport}
+            isExporting={isExporting}
+            onClearData={handleClearData}
+            isClearing={isClearing}
+            onLogin={signOut}
+          />
+
+          {/* Recipe list panel, docked to the right edge of the icon rail. */}
+          {hasImage && (
+            <aside className="animate-slide-in-left absolute inset-y-0 left-14 z-20 flex w-[272px] flex-col border-r border-white/10 bg-neutral-900/70 backdrop-blur-xl">
+              <div className="px-4 pb-3 pt-4">
+                <h1 className="text-base font-semibold">Film Recipes</h1>
+                <p id="status" className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
+                  {status}
+                </p>
+              </div>
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Recipes</div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+                <RecipeSelector
+                  value={selectedRecipeId}
+                  onValueChange={setSelectedRecipeId}
+                  disabled={!hasImage}
+                  thumbnails={recipeThumbnails}
+                />
+              </div>
+            </aside>
+          )}
+
+          {/* Empty state: title + centered import prompt while there's no image. */}
+          {!hasImage && (
+            <>
+              <div className="absolute left-20 top-4 z-10">
+                <h1 className="text-lg font-semibold">Film Recipes</h1>
+                <p id="status" className="text-xs text-neutral-300">
+                  {status}
+                </p>
+              </div>
+              <div className="absolute inset-0 z-10 flex items-center justify-center p-6 pl-14">
+                <div className="animate-rise-in w-full max-w-md">
+                  <ImportZone onFileSelected={handleFileSelected} disabled={isDecoding} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Zoom controls for inspecting detail (scales the full-res canvas). */}
+          {hasImage && (
+            <div className="glass glass-dark absolute bottom-3 right-4 z-30 flex items-center gap-1 rounded-full p-1 text-neutral-100">
+              <button
+                id="zoom-out"
+                type="button"
+                onClick={zoomOut}
+                disabled={zoom <= ZOOM_MIN}
+                aria-label="Zoom out"
+                className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
+              >
+                −
+              </button>
+              <span className="min-w-12 text-center text-xs tabular-nums text-neutral-300">{Math.round(zoom * 100)}%</span>
+              <button
+                id="zoom-in"
+                type="button"
+                onClick={zoomIn}
+                disabled={zoom >= ZOOM_MAX}
+                aria-label="Zoom in"
+                className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
+              >
+                +
+              </button>
+            </div>
+          )}
         </>
       )}
 
-      {/* Zoom controls for inspecting detail (scales the full-res canvas). */}
-      {hasImage && (
-        <div className="glass glass-dark absolute bottom-3 right-4 z-30 flex items-center gap-1 rounded-full p-1 text-neutral-100">
-          <button
-            id="zoom-out"
-            type="button"
-            onClick={zoomOut}
-            disabled={zoom <= ZOOM_MIN}
-            aria-label="Zoom out"
-            className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
-          >
-            −
-          </button>
-          <span className="min-w-12 text-center text-xs tabular-nums text-neutral-300">{Math.round(zoom * 100)}%</span>
-          <button
-            id="zoom-in"
-            type="button"
-            onClick={zoomIn}
-            disabled={zoom >= ZOOM_MAX}
-            aria-label="Zoom in"
-            className="glass-hover flex size-7 items-center justify-center rounded-full text-lg leading-none disabled:opacity-40"
-          >
-            +
-          </button>
-        </div>
-      )}
-
-      {/* Floating, draggable adjustments window. */}
-      {hasImage && adjustmentsOpen && <AdjustmentsPanel disabled={false} />}
+      {/* Floating, draggable adjustments window — centered on mobile. */}
+      {hasImage && adjustmentsOpen && <AdjustmentsPanel disabled={false} initialCenter={isMobile} />}
     </main>
   );
 }
