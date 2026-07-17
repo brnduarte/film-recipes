@@ -1,11 +1,19 @@
 import { create } from "zustand";
-import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
+import type { ColorGrade, ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
 
 export interface DecodedImage {
   width: number;
   height: number;
   rgba: Uint8Array;
 }
+
+/** Identity color grade — disabled, matching ColorGrade::default(). */
+export const NEUTRAL_COLOR_GRADE: ColorGrade = {
+  enabled: false,
+  harmony: "Complementary",
+  intensity: 0.5,
+  stops: [],
+};
 
 /** Identity manual grade — a no-op, matching ManualAdjustments::default(). */
 export const NEUTRAL_MANUAL: ManualAdjustments = {
@@ -17,6 +25,7 @@ export const NEUTRAL_MANUAL: ManualAdjustments = {
   saturation: 0,
   black_level: 0,
   white_level: 1,
+  color_grade: { ...NEUTRAL_COLOR_GRADE },
 };
 
 interface EditorState {
@@ -40,6 +49,7 @@ interface EditorState {
   setDecoded: (decoded: DecodedImage | null) => void;
   setSelectedRecipeId: (id: string) => void;
   setManual: (patch: Partial<ManualAdjustments>) => void;
+  setColorGrade: (patch: Partial<ColorGrade>) => void;
   resetManual: () => void;
   setSplitX: (splitX: number) => void;
   setRecipeThumbnails: (thumbnails: Record<string, string>) => void;
@@ -59,7 +69,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   setDecoded: (decoded) => set({ decoded }),
   setSelectedRecipeId: (selectedRecipeId) => set({ selectedRecipeId }),
   setManual: (patch) => set((s) => ({ manual: { ...s.manual, ...patch } })),
-  resetManual: () => set({ manual: { ...NEUTRAL_MANUAL } }),
+  setColorGrade: (patch) =>
+    set((s) => ({ manual: { ...s.manual, color_grade: { ...s.manual.color_grade, ...patch } } })),
+  resetManual: () => set({ manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } } }),
   setSplitX: (splitX) => set({ splitX }),
   setRecipeThumbnails: (recipeThumbnails) => set({ recipeThumbnails }),
 }));

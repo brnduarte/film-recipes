@@ -59,4 +59,10 @@ export function setRecipeUniforms(
   gl.uniform1f(gl.getUniformLocation(program, "u_manualSaturation"), u.manualSaturation);
   gl.uniform1f(gl.getUniformLocation(program, "u_manualBlackLevel"), u.manualBlackLevel);
   gl.uniform1f(gl.getUniformLocation(program, "u_manualWhiteLevel"), u.manualWhiteLevel);
+
+  // Color grade (luminance color-map). Stops are precomputed to linear RGB.
+  gl.uniform1i(gl.getUniformLocation(program, "u_colorGradeEnabled"), u.colorGradeEnabled ? 1 : 0);
+  gl.uniform1f(gl.getUniformLocation(program, "u_colorGradeIntensity"), u.colorGradeIntensity);
+  gl.uniform1i(gl.getUniformLocation(program, "u_colorGradeStopCount"), u.colorGradeStopCount);
+  gl.uniform3fv(gl.getUniformLocation(program, "u_colorGradeColors"), u.colorGradeColors);
 }

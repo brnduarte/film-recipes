@@ -52,6 +52,15 @@ uniform float u_manualSaturation;   // -1..+1
 uniform float u_manualBlackLevel;   // levels black point
 uniform float u_manualWhiteLevel;   // levels white point
 
+// Color grade (luminance color-map), pipeline.rs::apply_color_grade. Stops are
+// precomputed to linear RGB tints by recipe-uniforms.ts and passed here; the
+// shader interpolates them across luma and adds the chroma offset.
+const int MAX_GRADE_STOPS = 6;
+uniform bool u_colorGradeEnabled;
+uniform float u_colorGradeIntensity;
+uniform int u_colorGradeStopCount;
+uniform vec3 u_colorGradeColors[MAX_GRADE_STOPS];
+
 // Before/after split: pixels with v_uv.x < u_splitX render the untouched
 // original (the "before" side); pixels to the right render the full recipe.
 // u_splitX = 0.0 shows the recipe everywhere (used for thumbnails/exports);
@@ -157,6 +166,30 @@ vec3 colorChromeFxBlue(vec3 rgb, float amount) {
   return hsv2rgb(vec3(hsv.x, clamp(compressed, 0.0, 1.0), hsv.z));
 }
 
+// pipeline.rs::apply_color_grade — interpolate a tint across the evenly-spaced
+// stops by luma, subtract the tint's own luma so only chroma is added.
+vec3 colorGrade(vec3 rgb) {
+  if (!u_colorGradeEnabled || u_colorGradeStopCount <= 0 || u_colorGradeIntensity <= 0.0) {
+    return rgb;
+  }
+  float luma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+  int n = u_colorGradeStopCount;
+  vec3 tint;
+  if (n == 1) {
+    tint = u_colorGradeColors[0];
+  } else {
+    float x = clamp(luma, 0.0, 1.0);
+    float seg = x * float(n - 1);
+    int i = int(floor(seg));
+    if (i > n - 2) i = n - 2;
+    float t = seg - float(i);
+    // Dynamic array indexing by non-constant is allowed in GLSL ES 3.00.
+    tint = mix(u_colorGradeColors[i], u_colorGradeColors[i + 1], t);
+  }
+  float tintLuma = dot(tint, vec3(0.2126, 0.7152, 0.0722));
+  return rgb + (tint - tintLuma) * u_colorGradeIntensity;
+}
+
 // monochrome.rs::apply_sepia_tone
 vec3 sepiaTone(vec3 rgb) {
   float luma = rgb.g; // R=G=B already, any channel is the luma value
@@ -210,6 +243,9 @@ void main() {
   rgb = (rgb - u_manualBlackLevel) / levelsRange;
   float manualLuma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
   rgb = manualLuma + (rgb - manualLuma) * (1.0 + u_manualSaturation);
+
+  // 9. Color grade (luminance color-map), applied last.
+  rgb = colorGrade(rgb);
 
   outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

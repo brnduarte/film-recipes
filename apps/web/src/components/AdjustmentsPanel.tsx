@@ -1,17 +1,32 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { ManualAdjustments } from "@fuji-recipes/core-types";
+import type { ColorHarmony, ManualAdjustments } from "@fuji-recipes/core-types";
 import { useEditorStore } from "../store";
+import { ColorWheel, stopsForHarmony } from "./ColorWheel";
+
+/** Number-valued manual fields the sliders can bind to (excludes color_grade). */
+type NumericManualField = {
+  [K in keyof ManualAdjustments]: ManualAdjustments[K] extends number ? K : never;
+}[keyof ManualAdjustments];
 
 interface SliderSpec {
   id: string;
   label: string;
-  field: keyof ManualAdjustments;
+  field: NumericManualField;
   min: number;
   max: number;
   step: number;
   /** How to render the numeric value next to the label. */
   format: (v: number) => string;
 }
+
+const HARMONIES: { id: ColorHarmony; label: string }[] = [
+  { id: "Monochromatic", label: "Monochromatic" },
+  { id: "Analogous", label: "Analogous" },
+  { id: "Complementary", label: "Complementary" },
+  { id: "SplitComplementary", label: "Split Comp." },
+  { id: "Triad", label: "Triad" },
+  { id: "Square", label: "Square" },
+];
 
 const SLIDERS: SliderSpec[] = [
   { id: "exposure", label: "Exposure", field: "exposure", min: -2, max: 2, step: 0.01, format: (v) => `${v.toFixed(2)} EV` },
@@ -43,10 +58,20 @@ interface AdjustmentsPanelProps {
   disabled?: boolean;
 }
 
+type Tab = "adjust" | "grade";
+
 export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
   const manual = useEditorStore((s) => s.manual);
   const setManual = useEditorStore((s) => s.setManual);
+  const setColorGrade = useEditorStore((s) => s.setColorGrade);
   const resetManual = useEditorStore((s) => s.resetManual);
+  const grade = manual.color_grade;
+
+  const [tab, setTab] = useState<Tab>("adjust");
+
+  function selectHarmony(harmony: ColorHarmony) {
+    setColorGrade({ harmony, enabled: true, stops: stopsForHarmony(harmony) });
+  }
 
   const [pos, setPos] = useState(() =>
     clampPosition(typeof window === "undefined" ? 0 : window.innerWidth - PANEL_WIDTH - 24, 88),
@@ -96,26 +121,105 @@ export function AdjustmentsPanel({ disabled }: AdjustmentsPanelProps) {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 p-3">
-        {SLIDERS.map((slider) => (
-          <label key={slider.id} className="flex flex-col gap-1 text-sm text-neutral-300">
-            <span className="flex justify-between">
-              <span>{slider.label}</span>
-              <span className="tabular-nums text-neutral-400">{slider.format(manual[slider.field])}</span>
-            </span>
-            <input
-              id={slider.id}
-              type="range"
-              min={slider.min}
-              max={slider.max}
-              step={slider.step}
-              value={manual[slider.field]}
-              disabled={disabled}
-              onChange={(event) => setManual({ [slider.field]: Number(event.target.value) })}
-            />
-          </label>
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-white/10 px-2 pt-2">
+        {([["adjust", "Adjustments"], ["grade", "Color Grade"]] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`rounded-t-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              tab === id ? "bg-white/10 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            {label}
+          </button>
         ))}
       </div>
+
+      {tab === "adjust" ? (
+        <div className="flex flex-col gap-3 p-3">
+          {SLIDERS.map((slider) => (
+            <label key={slider.id} className="flex flex-col gap-1 text-sm text-neutral-300">
+              <span className="flex justify-between">
+                <span>{slider.label}</span>
+                <span className="tabular-nums text-neutral-400">{slider.format(manual[slider.field])}</span>
+              </span>
+              <input
+                id={slider.id}
+                type="range"
+                min={slider.min}
+                max={slider.max}
+                step={slider.step}
+                value={manual[slider.field]}
+                disabled={disabled}
+                onChange={(event) => setManual({ [slider.field]: Number(event.target.value) })}
+              />
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 p-3">
+          {/* Harmony preset — single-selection dropdown */}
+          <label className="flex flex-col gap-1 text-sm text-neutral-300">
+            <span>Harmony</span>
+            <select
+              id="grade-harmony"
+              value={grade.enabled ? grade.harmony : ""}
+              disabled={disabled}
+              onChange={(event) => selectHarmony(event.target.value as ColorHarmony)}
+              className="rounded-md border border-white/10 bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:border-white/30 disabled:opacity-50"
+            >
+              <option value="" disabled>
+                Choose a harmony…
+              </option>
+              {HARMONIES.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {grade.enabled && grade.stops.length > 0 ? (
+            <>
+              <ColorWheel stops={grade.stops} onChange={(stops) => setColorGrade({ stops })} />
+
+              <label className="flex flex-col gap-1 text-sm text-neutral-300">
+                <span className="flex justify-between">
+                  <span>Intensity</span>
+                  <span className="tabular-nums text-neutral-400">{grade.intensity.toFixed(2)}</span>
+                </span>
+                <input
+                  id="grade-intensity"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={grade.intensity}
+                  disabled={disabled}
+                  onChange={(event) => setColorGrade({ intensity: Number(event.target.value) })}
+                />
+              </label>
+
+              <button
+                id="grade-disable"
+                type="button"
+                onClick={() => setColorGrade({ enabled: false })}
+                disabled={disabled}
+                className="self-start text-xs text-neutral-400 underline-offset-2 hover:text-neutral-100 hover:underline disabled:opacity-50"
+              >
+                Turn off color grade
+              </button>
+            </>
+          ) : (
+            <p className="px-1 text-xs text-neutral-400">
+              Pick a harmony above to start grading. Drag the primary (white-ringed) handle to
+              rotate the palette; drag the others to fine-tune.
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

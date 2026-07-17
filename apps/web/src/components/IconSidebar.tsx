@@ -12,6 +12,8 @@ const RAIL_BUTTON_BASE =
   "group relative flex size-10 items-center justify-center rounded-xl transition-all duration-200 ease-out hover:scale-105 disabled:pointer-events-none disabled:opacity-40";
 const RAIL_BUTTON_IDLE = "text-neutral-400 hover:bg-white/8 hover:text-neutral-100";
 const RAIL_BUTTON_ACTIVE = "bg-white/15 text-white";
+const RAIL_BUTTON_ACCENT =
+  "bg-gradient-to-br from-fuchsia-500 to-indigo-500 text-white shadow-lg hover:from-fuchsia-400 hover:to-indigo-400";
 
 /** Styled hover tooltip that floats to the right of an icon-only rail item. */
 function Tooltip({ label }: { label: string }) {
@@ -29,12 +31,15 @@ interface RailButtonProps {
   label: string;
   active?: boolean;
   disabled?: boolean;
+  /** Highlight the button with the app's purple accent (used for Export). */
+  accent?: boolean;
   id?: string;
   onClick?: () => void;
   children: ReactNode;
 }
 
-function RailButton({ label, active, disabled, id, onClick, children }: RailButtonProps) {
+function RailButton({ label, active, disabled, accent, id, onClick, children }: RailButtonProps) {
+  const variant = active ? RAIL_BUTTON_ACTIVE : accent ? RAIL_BUTTON_ACCENT : RAIL_BUTTON_IDLE;
   return (
     <button
       id={id}
@@ -43,7 +48,7 @@ function RailButton({ label, active, disabled, id, onClick, children }: RailButt
       disabled={disabled}
       aria-label={label}
       aria-pressed={active}
-      className={`${RAIL_BUTTON_BASE} ${active ? RAIL_BUTTON_ACTIVE : RAIL_BUTTON_IDLE}`}
+      className={`${RAIL_BUTTON_BASE} ${variant}`}
     >
       {children}
       <Tooltip label={label} />
@@ -86,7 +91,7 @@ export function IconSidebar({
   return (
     <nav className="absolute inset-y-0 left-0 z-30 flex w-14 flex-col items-center gap-1 border-r border-white/10 bg-neutral-900/70 py-3 backdrop-blur-xl">
       {/* App mark */}
-      <div className="group relative mb-2 flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-indigo-500 text-sm font-bold text-white shadow-lg">
+      <div className="group relative mb-2 flex size-10 items-center justify-center rounded-xl bg-neutral-800 text-sm font-bold text-neutral-100 shadow-lg ring-1 ring-white/10">
         F
         <Tooltip label="Fuji Recipes" />
       </div>
@@ -124,7 +129,7 @@ export function IconSidebar({
             </svg>
           </RailButton>
 
-          <RailButton id="export-jpeg" label={isExporting ? "Exporting…" : "Export JPEG"} disabled={isExporting} onClick={onExport}>
+          <RailButton id="export-jpeg" accent label={isExporting ? "Exporting…" : "Export JPEG"} disabled={isExporting} onClick={onExport}>
             <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3v11" />
               <path d="M8 10l4 4 4-4" />
@@ -145,10 +150,11 @@ export function IconSidebar({
           </svg>
         </RailButton>
 
-        <RailButton label="Log in" onClick={onLogin}>
+        <RailButton label="Log out" onClick={onLogin}>
           <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="3.5" />
-            <path d="M5 20a7 7 0 0 1 14 0" />
+            <path d="M15 12H4" />
+            <path d="M9 7l-5 5 5 5" />
+            <path d="M13 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" />
           </svg>
         </RailButton>
       </div>

@@ -71,6 +71,29 @@ export interface RecipeOverrides {
   tone?: ToneSetting | null;
 }
 
+export type ColorHarmony =
+  | "Monochromatic"
+  | "Analogous"
+  | "Complementary"
+  | "SplitComplementary"
+  | "Triad"
+  | "Square";
+
+/** One color-wheel handle (HSV). hue = wheel angle, saturation = radius. */
+export interface ColorGradeStop {
+  hue: number; // 0..360 degrees
+  saturation: number; // 0..1
+  value: number; // 0..1
+}
+
+/** Luminance color-map grade — stops spread shadows→highlights across luma. */
+export interface ColorGrade {
+  enabled: boolean;
+  harmony: ColorHarmony;
+  intensity: number; // 0..1 overall tint strength
+  stops: ColorGradeStop[];
+}
+
 export interface ManualAdjustments {
   exposure: number; // stops, combines additively with recipe exposure comp
   white_balance: number; // -1..+1, cool..warm temperature shift
@@ -80,6 +103,7 @@ export interface ManualAdjustments {
   saturation: number; // -1..+1, luma-pivot saturation
   black_level: number; // 0..+1, levels black point (default 0.0)
   white_level: number; // 0..+1, levels white point (default 1.0)
+  color_grade: ColorGrade; // luminance color-map tint (default: disabled)
 }
 
 export interface Crop {

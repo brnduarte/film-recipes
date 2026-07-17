@@ -73,11 +73,56 @@ body {
   animation: rise-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
+/* Landing hero: the "after" (graded) copy is clipped to a vertical band that
+   sweeps left↔right, revealing the recipe-graded version over the original. */
+@keyframes hero-wipe {
+  0% {
+    clip-path: inset(0 0 0 85%);
+  }
+  50% {
+    clip-path: inset(0 85% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 85%);
+  }
+}
+
+/* The divider line rides along with the wipe edge. */
+@keyframes hero-divider {
+  0% {
+    left: 85%;
+  }
+  50% {
+    left: 15%;
+  }
+  100% {
+    left: 85%;
+  }
+}
+
+.animate-hero-wipe {
+  animation: hero-wipe 9s ease-in-out infinite;
+}
+
+.animate-hero-divider {
+  animation: hero-divider 9s ease-in-out infinite;
+}
+
 /* Respect users who prefer reduced motion — drop entrance/spinner animation. */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-slide-in-left,
   .animate-rise-in {
     animation: none;
+  }
+
+  /* Freeze the hero comparison at a static ~55% reveal. */
+  .animate-hero-wipe {
+    animation: none;
+    clip-path: inset(0 45% 0 0);
+  }
+  .animate-hero-divider {
+    animation: none;
+    left: 55%;
   }
 }

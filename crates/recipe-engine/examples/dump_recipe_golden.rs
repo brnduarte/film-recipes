@@ -7,7 +7,7 @@
 //!     packages/gl-pipeline/test/recipe-golden.json
 
 use recipe_engine::pipeline::apply_recipe_to_pixel;
-use recipe_engine::recipe::{ManualAdjustments, Recipe};
+use recipe_engine::recipe::{ColorGrade, ColorGradeStop, ColorHarmony, ManualAdjustments, Recipe};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -57,6 +57,22 @@ fn main() {
         saturation: 0.25,
         black_level: 0.05,
         white_level: 0.92,
+        ..Default::default()
+    };
+
+    // A teal-shadows / orange-highlights split (Complementary harmony) so the
+    // parity harness covers pipeline.rs::apply_color_grade too.
+    let manual_color_grade = ManualAdjustments {
+        color_grade: ColorGrade {
+            enabled: true,
+            harmony: ColorHarmony::Complementary,
+            intensity: 0.6,
+            stops: vec![
+                ColorGradeStop { hue: 190.0, saturation: 0.7, value: 0.6 },
+                ColorGradeStop { hue: 30.0, saturation: 0.8, value: 0.7 },
+            ],
+        },
+        ..Default::default()
     };
 
     let goldens = vec![
@@ -80,6 +96,8 @@ fn main() {
         golden_for("cinestill-800t", &recipe_engine::named_recipes::cinestill_800t_recipe()),
         golden_with("Provia+manual", &Recipe::provia_baseline(), manual_grade.clone()),
         golden_with("cinestill-800t+manual", &recipe_engine::named_recipes::cinestill_800t_recipe(), manual_grade),
+        golden_with("Provia+grade", &Recipe::provia_baseline(), manual_color_grade.clone()),
+        golden_with("ClassicChrome+grade", &recipe_engine::classic_chrome::classic_chrome_recipe(), manual_color_grade),
     ];
 
     println!("{}", serde_json::to_string_pretty(&goldens).unwrap());

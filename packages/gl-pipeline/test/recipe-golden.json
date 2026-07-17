@@ -9,7 +9,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -96,7 +102,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -183,7 +195,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -270,7 +288,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -357,7 +381,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -444,7 +474,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -531,7 +567,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -618,7 +660,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -705,7 +753,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -792,7 +846,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -879,7 +939,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -966,7 +1032,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1053,7 +1125,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1140,7 +1218,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1227,7 +1311,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1314,7 +1404,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1401,7 +1497,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1488,7 +1590,13 @@
       "shadows": 0.0,
       "saturation": 0.0,
       "black_level": 0.0,
-      "white_level": 1.0
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1575,7 +1683,13 @@
       "shadows": 0.4,
       "saturation": 0.25,
       "black_level": 0.05,
-      "white_level": 0.92
+      "white_level": 0.92,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1662,7 +1776,13 @@
       "shadows": 0.4,
       "saturation": 0.25,
       "black_level": 0.05,
-      "white_level": 0.92
+      "white_level": 0.92,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      }
     },
     "pixels": [
       {
@@ -1735,6 +1855,214 @@
           0.5400458,
           0.7801369,
           1.0
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Provia+grade",
+    "manual": {
+      "exposure": 0.0,
+      "white_balance": 0.0,
+      "contrast": 0.0,
+      "highlights": 0.0,
+      "shadows": 0.0,
+      "saturation": 0.0,
+      "black_level": 0.0,
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": true,
+        "harmony": "Complementary",
+        "intensity": 0.6,
+        "stops": [
+          {
+            "hue": 190.0,
+            "saturation": 0.7,
+            "value": 0.6
+          },
+          {
+            "hue": 30.0,
+            "saturation": 0.8,
+            "value": 0.7
+          }
+        ]
+      }
+    },
+    "pixels": [
+      {
+        "input": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "expected": [
+          0.0,
+          0.041613597,
+          0.083613634
+        ]
+      },
+      {
+        "input": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "expected": [
+          1.0,
+          0.97641283,
+          0.8084128
+        ]
+      },
+      {
+        "input": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "expected": [
+          0.4880132,
+          0.5090132,
+          0.4460132
+        ]
+      },
+      {
+        "input": [
+          0.9,
+          0.1,
+          0.1
+        ],
+        "expected": [
+          0.8160944,
+          0.124004155,
+          0.109287396
+        ]
+      },
+      {
+        "input": [
+          0.3,
+          0.45,
+          0.32
+        ],
+        "expected": [
+          0.25946215,
+          0.46496445,
+          0.29113242
+        ]
+      },
+      {
+        "input": [
+          0.1,
+          0.3,
+          0.9
+        ],
+        "expected": [
+          0.025703587,
+          0.3220012,
+          0.9008332
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ClassicChrome+grade",
+    "manual": {
+      "exposure": 0.0,
+      "white_balance": 0.0,
+      "contrast": 0.0,
+      "highlights": 0.0,
+      "shadows": 0.0,
+      "saturation": 0.0,
+      "black_level": 0.0,
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": true,
+        "harmony": "Complementary",
+        "intensity": 0.6,
+        "stops": [
+          {
+            "hue": 190.0,
+            "saturation": 0.7,
+            "value": 0.6
+          },
+          {
+            "hue": 30.0,
+            "saturation": 0.8,
+            "value": 0.7
+          }
+        ]
+      }
+    },
+    "pixels": [
+      {
+        "input": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "expected": [
+          0.0,
+          0.106474996,
+          0.1426065
+        ]
+      },
+      {
+        "input": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "expected": [
+          1.0,
+          0.92066336,
+          0.7445694
+        ]
+      },
+      {
+        "input": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "expected": [
+          0.48563626,
+          0.5101721,
+          0.44372132
+        ]
+      },
+      {
+        "input": [
+          0.9,
+          0.1,
+          0.1
+        ],
+        "expected": [
+          0.6944448,
+          0.2653887,
+          0.23545331
+        ]
+      },
+      {
+        "input": [
+          0.3,
+          0.45,
+          0.32
+        ],
+        "expected": [
+          0.29461014,
+          0.46105123,
+          0.32242194
+        ]
+      },
+      {
+        "input": [
+          0.1,
+          0.3,
+          0.9
+        ],
+        "expected": [
+          0.19518235,
+          0.39496043,
+          0.7502574
         ]
       }
     ]

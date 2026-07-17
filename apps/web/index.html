@@ -18,9 +18,15 @@
       not this <meta> tag) once there's a real HTTP server in front of the
       production build to attach one to.
     -->
+    <!--
+      Minimal Google Identity Services (GIS) allowances for sign-in only:
+      the GSI script, its stylesheet, its token endpoint, and the sign-in
+      iframe. These are scoped to accounts.google.com/gsi/ and do NOT widen
+      connect-src for image data — photos still never leave the device.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; img-src 'self' data: blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
     <title>Fuji Recipes</title>
   </head>

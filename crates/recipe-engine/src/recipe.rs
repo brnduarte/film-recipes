@@ -169,6 +169,64 @@ pub struct RecipeOverrides {
     pub tone: Option<ToneSetting>,
 }
 
+/// Color-harmony families the color wheel offers as starting layouts. Each
+/// spreads a set of hue handles around the wheel at fixed relative angles;
+/// the handles then become luminance-ordered grade stops (shadows→highlights).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ColorHarmony {
+    Monochromatic,
+    Analogous,
+    Complementary,
+    SplitComplementary,
+    Triad,
+    Square,
+}
+
+impl Default for ColorHarmony {
+    fn default() -> Self {
+        ColorHarmony::Complementary
+    }
+}
+
+/// One color-wheel handle: an HSV color. `hue` is the wheel angle, `saturation`
+/// the radial distance from center, `value` the handle brightness. Converted to
+/// an RGB tint at grade time (see `pipeline::apply_color_grade`).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ColorGradeStop {
+    pub hue: f32,        // 0..360 degrees (wheel angle)
+    pub saturation: f32, // 0..1 (wheel radius)
+    pub value: f32,      // 0..1 (handle brightness)
+}
+
+impl Default for ColorGradeStop {
+    fn default() -> Self {
+        Self { hue: 0.0, saturation: 0.0, value: 0.5 }
+    }
+}
+
+/// Luminance color-map grade: the handles in `stops` are ordered from shadows
+/// to highlights and spread evenly across the tonal range, then the image is
+/// tinted toward the interpolated stop color by each pixel's luma. Disabled by
+/// default (empty look), so `ManualAdjustments::default()` stays a no-op.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ColorGrade {
+    pub enabled: bool,
+    pub harmony: ColorHarmony,
+    pub intensity: f32, // 0..1 overall tint strength
+    pub stops: Vec<ColorGradeStop>, // shadows→highlights, spread across luma
+}
+
+impl Default for ColorGrade {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            harmony: ColorHarmony::default(),
+            intensity: 0.5,
+            stops: Vec::new(),
+        }
+    }
+}
+
 /// Global, non-destructive manual adjustments applied *after* the recipe's
 /// baked-in look — the user-facing edit sliders. Every field defaults to a
 /// no-op identity (see `Default`), so `ManualAdjustments::default()` leaves a
@@ -184,6 +242,8 @@ pub struct ManualAdjustments {
     pub saturation: f32,    // -1..+1, luma-pivot saturation
     pub black_level: f32,   // 0..+1, levels black point (default 0.0)
     pub white_level: f32,   // 0..+1, levels white point (default 1.0)
+    #[serde(default)]
+    pub color_grade: ColorGrade, // luminance color-map tint (default: disabled)
 }
 
 impl Default for ManualAdjustments {
@@ -197,6 +257,7 @@ impl Default for ManualAdjustments {
             saturation: 0.0,
             black_level: 0.0,
             white_level: 1.0,
+            color_grade: ColorGrade::default(),
         }
     }
 }

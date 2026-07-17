@@ -5,6 +5,7 @@ import { NAMED_RECIPES } from "@fuji-recipes/recipes-catalog";
 import { clearAllData } from "@fuji-recipes/storage";
 import type { Recipe } from "@fuji-recipes/core-types";
 import { useEditorStore, NEUTRAL_MANUAL } from "./store";
+import { useAuthStore } from "./auth";
 import { ImportZone } from "./components/ImportZone";
 import { RecipeSelector } from "./components/RecipeSelector";
 import { AdjustmentsPanel } from "./components/AdjustmentsPanel";
@@ -38,6 +39,7 @@ export function App() {
   const setSplitX = useEditorStore((s) => s.setSplitX);
   const resetManual = useEditorStore((s) => s.resetManual);
   const setRecipeThumbnails = useEditorStore((s) => s.setRecipeThumbnails);
+  const signOut = useAuthStore((s) => s.signOut);
 
   // One-time setup: compile the GL preview program and load the named
   // community recipes from Rust (via WASM).
@@ -236,7 +238,7 @@ export function App() {
         isExporting={isExporting}
         onClearData={handleClearData}
         isClearing={isClearing}
-        onLogin={() => setStatus("Accounts are coming soon — everything runs locally for now.")}
+        onLogin={signOut}
       />
 
       {/* Recipe list panel, docked to the right edge of the icon rail. */}

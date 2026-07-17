@@ -35,8 +35,10 @@ const EXPECTED_KEYS = {
   WhiteBalance: ["mode", "kelvin", "red_shift", "blue_shift"],
   ManualAdjustments: [
     "exposure", "white_balance", "contrast", "highlights",
-    "shadows", "saturation", "black_level", "white_level",
+    "shadows", "saturation", "black_level", "white_level", "color_grade",
   ],
+  ColorGrade: ["enabled", "harmony", "intensity", "stops"],
+  ColorGradeStop: ["hue", "saturation", "value"],
 };
 
 function checkKeys(typeName, expected, actual) {
@@ -60,6 +62,8 @@ if (!checkKeys("ToneSetting", EXPECTED_KEYS.ToneSetting, sample.recipe.tone)) fa
 if (!checkKeys("GrainSettings", EXPECTED_KEYS.GrainSettings, sample.recipe.grain)) failures++;
 if (!checkKeys("WhiteBalance", EXPECTED_KEYS.WhiteBalance, sample.recipe.white_balance)) failures++;
 if (!checkKeys("ManualAdjustments", EXPECTED_KEYS.ManualAdjustments, sample.manual_adjustments)) failures++;
+if (!checkKeys("ColorGrade", EXPECTED_KEYS.ColorGrade, sample.manual_adjustments.color_grade)) failures++;
+if (!checkKeys("ColorGradeStop", EXPECTED_KEYS.ColorGradeStop, sample.manual_adjustments.color_grade.stops[0])) failures++;
 
 const total = Object.keys(EXPECTED_KEYS).length;
 console.log(`\n${total - failures}/${total} schema parity checks passed`);

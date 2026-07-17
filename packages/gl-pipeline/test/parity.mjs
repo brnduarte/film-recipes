@@ -217,10 +217,10 @@ const TOLERANCE = 0.002; // ~0.5/255 8-bit levels
 let total = 0;
 let failures = 0;
 for (const { name, pixels, manual } of golden) {
-  // "<recipe>+manual" fixtures reuse the base recipe params and layer on the
-  // golden's manual grade (dump_recipe_golden.rs) — strip the suffix to look
-  // up the shared recipe fixture.
-  const recipe = RECIPES[name.replace(/\+manual$/, "")];
+  // "<recipe>+manual" / "<recipe>+grade" fixtures reuse the base recipe params
+  // and layer on the golden's manual grade / color grade (dump_recipe_golden.rs)
+  // — strip the suffix to look up the shared recipe fixture.
+  const recipe = RECIPES[name.replace(/\+(manual|grade)$/, "")];
   if (!recipe) {
     console.error(`FAIL: no JS-side recipe fixture defined for "${name}"`);
     failures++;

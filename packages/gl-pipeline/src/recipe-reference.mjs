@@ -77,10 +77,35 @@ const NEUTRAL_MANUAL = {
   saturation: 0,
   black_level: 0,
   white_level: 1,
+  color_grade: { enabled: false, harmony: "Complementary", intensity: 0.5, stops: [] },
 };
+
+const MAX_GRADE_STOPS = 6;
+
+// pipeline.rs::grade_hsv_to_rgb — standard HSV sextant conversion (hue deg).
+function gradeHsvToRgb(h, s, v) {
+  const c = v * s;
+  const hPrime = (((h % 360) + 360) % 360) / 60.0;
+  const x = c * (1 - Math.abs((hPrime % 2) - 1));
+  let r1, g1, b1;
+  const sextant = Math.floor(hPrime);
+  if (sextant === 0) [r1, g1, b1] = [c, x, 0];
+  else if (sextant === 1) [r1, g1, b1] = [x, c, 0];
+  else if (sextant === 2) [r1, g1, b1] = [0, c, x];
+  else if (sextant === 3) [r1, g1, b1] = [0, x, c];
+  else if (sextant === 4) [r1, g1, b1] = [x, 0, c];
+  else [r1, g1, b1] = [c, 0, x];
+  const m = v - c;
+  return [r1 + m, g1 + m, b1 + m];
+}
 
 function computeUniformsForRecipe(recipe, manual) {
   const { shadowLift, highlightPull } = dynamicRangeParams(recipe.dynamic_range, recipe.tone);
+  const grade = manual.color_grade ?? NEUTRAL_MANUAL.color_grade;
+  const stopCount = Math.min(grade.stops.length, MAX_GRADE_STOPS);
+  const colorGradeColors = grade.stops
+    .slice(0, MAX_GRADE_STOPS)
+    .map((s) => gradeHsvToRgb(s.hue, s.saturation, s.value));
   return {
     wbGain: wbGainForRecipe(recipe.white_balance),
     exposureStops: recipe.exposure_compensation + manual.exposure,
@@ -98,7 +123,37 @@ function computeUniformsForRecipe(recipe, manual) {
     manualSaturation: manual.saturation,
     manualBlackLevel: manual.black_level,
     manualWhiteLevel: manual.white_level,
+    colorGradeEnabled: grade.enabled && stopCount > 0 && grade.intensity > 0,
+    colorGradeIntensity: grade.intensity,
+    colorGradeStopCount: stopCount,
+    colorGradeColors,
   };
+}
+
+// pipeline.rs::apply_color_grade — interpolate a tint across evenly-spaced
+// stops by luma, add the chroma offset (tint minus its own luma).
+function colorGrade(rgb, u) {
+  if (!u.colorGradeEnabled || u.colorGradeStopCount <= 0 || u.colorGradeIntensity <= 0) {
+    return rgb;
+  }
+  const luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  const n = u.colorGradeStopCount;
+  let tint;
+  if (n === 1) {
+    tint = u.colorGradeColors[0];
+  } else {
+    const x = clamp(luma, 0, 1);
+    const seg = x * (n - 1);
+    let i = Math.floor(seg);
+    if (i > n - 2) i = n - 2;
+    const t = seg - i;
+    const a = u.colorGradeColors[i];
+    const b = u.colorGradeColors[i + 1];
+    tint = [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
+  }
+  const tintLuma = 0.2126 * tint[0] + 0.7152 * tint[1] + 0.0722 * tint[2];
+  const k = u.colorGradeIntensity;
+  return [rgb[0] + (tint[0] - tintLuma) * k, rgb[1] + (tint[1] - tintLuma) * k, rgb[2] + (tint[2] - tintLuma) * k];
 }
 
 function applyCurve3(x, p0, p1, p2, p3) {
@@ -236,6 +291,9 @@ export function recipeReference([r, g, b], recipe, manual = NEUTRAL_MANUAL) {
   const manualLuma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
   const sat = 1.0 + u.manualSaturation;
   rgb = rgb.map((c) => manualLuma + (c - manualLuma) * sat);
+
+  // 9. Color grade (luminance color-map), applied last.
+  rgb = colorGrade(rgb, u);
 
   return rgb.map((c) => clamp(c, 0, 1));
 }

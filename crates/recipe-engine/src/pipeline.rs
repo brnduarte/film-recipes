@@ -12,7 +12,7 @@
 //! noise) and is a no-op until then.
 
 use crate::color_chrome::{apply_color_chrome_effect, apply_color_chrome_fx_blue};
-use crate::recipe::{ManualAdjustments, Recipe};
+use crate::recipe::{ColorGrade, ColorGradeStop, ManualAdjustments, Recipe};
 use crate::tone::apply_tone;
 use crate::white_balance::apply_white_balance;
 
@@ -123,11 +123,74 @@ fn apply_manual_grade(mut rgb: [f32; 3], m: &ManualAdjustments) -> [f32; 3] {
     // Saturation: luma-pivot multiply.
     let sat = 1.0 + m.saturation;
     let luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-    [
+    rgb = [
         luma + (rgb[0] - luma) * sat,
         luma + (rgb[1] - luma) * sat,
         luma + (rgb[2] - luma) * sat,
+    ];
+
+    // Color grade: luminance color-map tint (last, so it colors the finished
+    // tonal result). See `apply_color_grade`.
+    apply_color_grade(rgb, &m.color_grade)
+}
+
+/// Luminance color-map grade. The grade's stops are ordered shadows→highlights
+/// and spread evenly across the tonal range; each pixel is nudged toward the
+/// stop color interpolated at its own luma. The stop color has its own luma
+/// subtracted first so only the *chroma* is added, preserving overall
+/// brightness/detail. Mirrored in recipe.frag.glsl / recipe-uniforms.ts /
+/// recipe-reference.mjs — keep the math identical for parity.
+fn apply_color_grade(rgb: [f32; 3], g: &ColorGrade) -> [f32; 3] {
+    if !g.enabled || g.stops.is_empty() || g.intensity <= 0.0 {
+        return rgb;
+    }
+    let luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    let tint = grade_interpolate_stop(luma, g);
+    let tint_luma = 0.2126 * tint[0] + 0.7152 * tint[1] + 0.0722 * tint[2];
+    let k = g.intensity;
+    [
+        rgb[0] + (tint[0] - tint_luma) * k,
+        rgb[1] + (tint[1] - tint_luma) * k,
+        rgb[2] + (tint[2] - tint_luma) * k,
     ]
+}
+
+/// Interpolate the grade tint (linear RGB) for a given luma across the stops,
+/// which are treated as evenly spaced over [0,1] from shadows to highlights.
+fn grade_interpolate_stop(luma: f32, g: &ColorGrade) -> [f32; 3] {
+    let n = g.stops.len();
+    if n == 1 {
+        return grade_stop_rgb(&g.stops[0]);
+    }
+    let x = luma.clamp(0.0, 1.0);
+    let seg = x * (n as f32 - 1.0);
+    let i = (seg.floor() as usize).min(n - 2);
+    let t = seg - i as f32;
+    let a = grade_stop_rgb(&g.stops[i]);
+    let b = grade_stop_rgb(&g.stops[i + 1]);
+    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
+}
+
+fn grade_stop_rgb(s: &ColorGradeStop) -> [f32; 3] {
+    grade_hsv_to_rgb(s.hue, s.saturation, s.value)
+}
+
+/// HSV→RGB using the standard sextant formula (mirrors color_chrome.rs so the
+/// grade's handle colors match the rest of the engine's hue math).
+fn grade_hsv_to_rgb(h: f32, s: f32, v: f32) -> [f32; 3] {
+    let c = v * s;
+    let h_prime = h.rem_euclid(360.0) / 60.0;
+    let x = c * (1.0 - (h_prime.rem_euclid(2.0) - 1.0).abs());
+    let (r1, g1, b1) = match h_prime as i32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let m = v - c;
+    [r1 + m, g1 + m, b1 + m]
 }
 
 fn manual_tone(x: f32, m: &ManualAdjustments) -> f32 {
