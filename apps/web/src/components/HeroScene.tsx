@@ -1,11 +1,24 @@
-// Landing-page hero: a fullscreen, self-authored (royalty-free, zero-network)
-// SVG sunrise landscape shown twice — an untouched "original" underneath and a
-// recipe-graded copy on top, clipped to a band that sweeps across so the page
-// continuously demos a before/after comparison. The graded copy cycles through
-// a few named-recipe looks (approximated with CSS filters) with a floating
-// label, so visitors see the kind of transformation the editor produces.
+// Landing-page hero: a fullscreen royalty-free photo shown twice — an untouched
+// "original" underneath and a recipe-graded copy on top, clipped to a band that
+// sweeps across so the page continuously demos a before/after comparison. The
+// background photo is picked at random on load and crossfades to a new random
+// photo every 15s. Images are bundled locally (served from 'self'), so the page
+// still makes zero external network requests — nothing leaves the device.
 
 import { useEffect, useState } from "react";
+
+/** Bundled hero photos (public/hero/*), covering people, landscape, and
+ *  objects. Local paths only — served from 'self', CSP-compliant. */
+const HERO_IMAGES = [
+  "/hero/portrait.jpg",
+  "/hero/landscape.jpg",
+  "/hero/coast.jpg",
+  "/hero/street.jpg",
+  "/hero/object.jpg",
+];
+
+/** How long each background photo stays before crossfading to the next. */
+const IMAGE_INTERVAL_MS = 15000;
 
 /** Recipe looks approximated as CSS filter stacks for the hero demo only —
  *  the real editor renders these through the WASM/WebGL pipeline, not filters. */
@@ -17,86 +30,89 @@ const RECIPE_LOOKS: { name: string; filter: string }[] = [
   { name: "Acros", filter: "grayscale(1) contrast(1.16) brightness(1.03)" },
 ];
 
-/** The inspiring scene, drawn once and reused for both sides. `preserveAspect
- *  ='slice'` makes it cover any viewport like a photo would. */
-function Landscape() {
-  return (
-    <svg
-      viewBox="0 0 1200 800"
-      preserveAspectRatio="xMidYMid slice"
-      className="h-full w-full"
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1b2a4a" />
-          <stop offset="38%" stopColor="#7b4b7a" />
-          <stop offset="66%" stopColor="#e08a5a" />
-          <stop offset="100%" stopColor="#f6c98f" />
-        </linearGradient>
-        <radialGradient id="sun" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#fff4d6" />
-          <stop offset="45%" stopColor="#ffd98a" />
-          <stop offset="100%" stopColor="#ffd98a" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f3c088" />
-          <stop offset="100%" stopColor="#8a5a6f" />
-        </linearGradient>
-      </defs>
-
-      {/* Sky + sun */}
-      <rect width="1200" height="800" fill="url(#sky)" />
-      <circle cx="600" cy="470" r="260" fill="url(#sun)" />
-      <circle cx="600" cy="470" r="82" fill="#fff1cf" opacity="0.95" />
-
-      {/* Distant mountain ranges, back to front. */}
-      <path d="M0 470 L180 360 L340 440 L520 330 L700 430 L880 340 L1080 440 L1200 380 L1200 800 L0 800 Z" fill="#6b4a72" opacity="0.55" />
-      <path d="M0 520 L160 430 L320 500 L470 410 L650 500 L820 420 L1000 510 L1200 440 L1200 800 L0 800 Z" fill="#553a5f" opacity="0.7" />
-      <path d="M0 560 L220 480 L420 555 L620 470 L820 560 L1030 485 L1200 555 L1200 800 L0 800 Z" fill="#3d2a49" />
-
-      {/* Reflective foreground water. */}
-      <rect y="560" width="1200" height="240" fill="url(#water)" />
-      <ellipse cx="600" cy="600" rx="150" ry="14" fill="#fff1cf" opacity="0.5" />
-      <g fill="#ffffff" opacity="0.25">
-        <rect x="360" y="620" width="480" height="3" rx="1.5" />
-        <rect x="420" y="650" width="360" height="3" rx="1.5" />
-        <rect x="470" y="682" width="260" height="3" rx="1.5" />
-      </g>
-    </svg>
-  );
+/** Pick a random index in [0, len), excluding `not` so a rotation always lands
+ *  on a different photo than the one currently shown. */
+function randomIndex(len: number, not?: number): number {
+  if (len <= 1) return 0;
+  let next = Math.floor(Math.random() * len);
+  while (next === not) next = Math.floor(Math.random() * len);
+  return next;
 }
 
 export function HeroScene() {
   const [look, setLook] = useState(0);
+  // Random photo on first load; `prev` sits underneath so each change
+  // crossfades in over the last photo with no dark flash.
+  const [index, setIndex] = useState(() => randomIndex(HERO_IMAGES.length));
+  const [prev, setPrev] = useState(index);
 
   useEffect(() => {
-    // Advance the graded look roughly once per wipe pass.
-    const id = window.setInterval(() => setLook((l) => (l + 1) % RECIPE_LOOKS.length), 4500);
+    // Auto-rotate the background photo — but honor reduced-motion preferences
+    // by leaving it on the initial random photo (which is still varied per load).
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => {
+      setIndex((cur) => {
+        setPrev(cur);
+        return randomIndex(HERO_IMAGES.length, cur);
+      });
+    }, IMAGE_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, []);
 
   const current = RECIPE_LOOKS[look];
+  const src = HERO_IMAGES[index];
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Original (before) */}
-      <div className="absolute inset-0">
-        <Landscape />
+    <div
+      className="animate-hero-sweep absolute inset-0 overflow-hidden"
+      // One sweep pass = one recipe. Advancing on the animation boundary (when
+      // the divider is parked at the far right, so the recipe is barely
+      // visible) means the look never changes mid-reveal.
+      onAnimationIteration={(e) => {
+        if (e.animationName.startsWith("hero-sweep")) {
+          setLook((l) => (l + 1) % RECIPE_LOOKS.length);
+        }
+      }}
+    >
+      {/* Previous photo as a static underlay so the new one crossfades over it. */}
+      <img
+        src={HERO_IMAGES[prev]}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      {/* Current photo + before/after demo, fades in over the previous. Keyed so
+          the crossfade restarts cleanly on each new photo. */}
+      <div key={index} className="animate-fade-in absolute inset-0">
+        {/* Original (before) — fills the whole frame; shows to the LEFT of the split. */}
+        <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+
+        {/* Graded (after) — same photo, clipped to everything RIGHT of the split
+            so it reads as a true before/after; filter cross-fades between looks.
+            `--hero-split` is shared with the divider, keeping them locked. */}
+        <img
+          src={src}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-1000 ease-in-out"
+          style={{ filter: current.filter, clipPath: "inset(0 0 0 var(--hero-split))" }}
+        />
       </div>
 
-      {/* Graded (after) — clipped to the sweeping band, filter cross-fades. */}
+      {/* Divider line at the split — same `--hero-split` as the graded clip. */}
       <div
-        className="animate-hero-wipe absolute inset-0 transition-[filter] duration-1000 ease-in-out"
-        style={{ filter: current.filter }}
+        className="absolute inset-y-0 w-px -translate-x-1/2 bg-white/80 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+        style={{ left: "var(--hero-split)" }}
       >
-        <Landscape />
-      </div>
-
-      {/* Sweeping divider line + recipe label. */}
-      <div className="animate-hero-divider absolute inset-y-0 w-px bg-white/70 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
         <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
           {current.name}
+        </span>
+        {/* App-style handle riding at the divider's vertical center (decorative). */}
+        <span className="absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/95 text-neutral-800 shadow-lg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6L4 12l5 6M15 6l5 6-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </span>
       </div>
 

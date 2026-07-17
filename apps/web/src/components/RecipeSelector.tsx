@@ -1,5 +1,5 @@
 import * as RadioGroup from "@radix-ui/react-radio-group";
-import { NAMED_RECIPES } from "@fuji-recipes/recipes-catalog";
+import { NAMED_RECIPES } from "@film-recipes/recipes-catalog";
 
 interface RecipeSelectorProps {
   value: string;

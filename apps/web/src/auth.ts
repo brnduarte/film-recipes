@@ -6,8 +6,8 @@ import { create } from "zustand";
 export interface AuthUser {
   name: string;
   email?: string;
-  /** How the session started: a real Google sign-in or the local guest path. */
-  provider: "google" | "guest";
+  /** The only supported sign-in path: a real Google authentication. */
+  provider: "google";
 }
 
 interface AuthState {

@@ -7,7 +7,7 @@
 //
 // Deliberately just `decode()` for now, not a full ProcessingBackend
 // interface (decode/renderPreview/renderExport) — renderPreview is already
-// shared/identical on both platforms and lives in @fuji-recipes/gl-pipeline
+// shared/identical on both platforms and lives in @film-recipes/gl-pipeline
 // (GlPreview), and renderExport doesn't exist yet (no export-render work
 // has started). Introducing the full interface now, before there's a second
 // implementation or a second consumer, would be speculative; add it when
@@ -18,7 +18,7 @@
 // follow-up, not yet done.
 
 import init, { decode_raw, decode_image, export_jpeg, init_panic_hook, named_recipes_json } from "./wasm/wasm_bridge.js";
-import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
+import type { ManualAdjustments, Recipe } from "@film-recipes/core-types";
 
 export interface DecodedImage {
   width: number;

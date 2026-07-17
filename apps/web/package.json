@@ -9,11 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fuji-recipes/core-types": "workspace:*",
-    "@fuji-recipes/gl-pipeline": "workspace:*",
-    "@fuji-recipes/processing-web": "workspace:*",
-    "@fuji-recipes/recipes-catalog": "workspace:*",
-    "@fuji-recipes/storage": "workspace:*",
+    "@film-recipes/core-types": "workspace:*",
+    "@film-recipes/gl-pipeline": "workspace:*",
+    "@film-recipes/processing-web": "workspace:*",
+    "@film-recipes/recipes-catalog": "workspace:*",
+    "@film-recipes/storage": "workspace:*",
     "@radix-ui/react-radio-group": "^1.4.3",
     "@radix-ui/react-switch": "^1.3.3",
     "react": "^19.2.7",

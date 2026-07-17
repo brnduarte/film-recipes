@@ -1,9 +1,9 @@
 //! Astia (Soft) film simulation — Phase 2 recipe. Publicly documented
-//! characteristics: Fuji's portrait-oriented simulation, designed for soft,
+//! characteristics: a portrait-oriented simulation, designed for soft,
 //! faithful, flattering skin tones with gentler contrast than Provia while
 //! keeping natural (not desaturated) color elsewhere.
 //!
-//! Not yet visually validated against a real Fuji Astia JPEG — provisional
+//! Not yet visually validated against a a real Astia JPEG — provisional
 //! pending a reference photo comparison, same caveat as every other
 //! recipe in this crate.
 

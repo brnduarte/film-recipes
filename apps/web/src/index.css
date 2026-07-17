@@ -73,39 +73,31 @@ body {
   animation: rise-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-/* Landing hero: the "after" (graded) copy is clipped to a vertical band that
-   sweeps left↔right, revealing the recipe-graded version over the original. */
-@keyframes hero-wipe {
+/* Landing hero: an auto-sweeping before/after split, mirroring the editor's
+   split slider. A single animated custom property `--hero-split` drives BOTH
+   the divider position and the graded layer's clip edge, so the slider line and
+   the recipe reveal are always locked together — left of the line is the
+   untouched original, right of it is the recipe. */
+@property --hero-split {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 55%;
+}
+
+@keyframes hero-sweep {
   0% {
-    clip-path: inset(0 0 0 85%);
+    --hero-split: 82%;
   }
   50% {
-    clip-path: inset(0 85% 0 0);
+    --hero-split: 22%;
   }
   100% {
-    clip-path: inset(0 0 0 85%);
+    --hero-split: 82%;
   }
 }
 
-/* The divider line rides along with the wipe edge. */
-@keyframes hero-divider {
-  0% {
-    left: 85%;
-  }
-  50% {
-    left: 15%;
-  }
-  100% {
-    left: 85%;
-  }
-}
-
-.animate-hero-wipe {
-  animation: hero-wipe 9s ease-in-out infinite;
-}
-
-.animate-hero-divider {
-  animation: hero-divider 9s ease-in-out infinite;
+.animate-hero-sweep {
+  animation: hero-sweep 9s ease-in-out infinite;
 }
 
 /* Respect users who prefer reduced motion — drop entrance/spinner animation. */
@@ -116,13 +108,9 @@ body {
     animation: none;
   }
 
-  /* Freeze the hero comparison at a static ~55% reveal. */
-  .animate-hero-wipe {
+  /* Freeze the hero split at a static ~55% reveal. */
+  .animate-hero-sweep {
     animation: none;
-    clip-path: inset(0 45% 0 0);
-  }
-  .animate-hero-divider {
-    animation: none;
-    left: 55%;
+    --hero-split: 55%;
   }
 }

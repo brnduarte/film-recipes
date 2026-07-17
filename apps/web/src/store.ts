@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ColorGrade, ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
+import type { ColorGrade, ManualAdjustments, Recipe } from "@film-recipes/core-types";
 
 export interface DecodedImage {
   width: number;

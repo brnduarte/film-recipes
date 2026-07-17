@@ -1,6 +1,6 @@
 //! ACROS film simulation — Phase 1 recipe #3. Publicly documented
 //! characteristics: monochrome with deep, smooth blacks, high sharpness,
-//! and fine, well-controlled grain (Fuji markets it specifically for grain
+//! and fine, well-controlled grain (the manufacturer markets it specifically for grain
 //! quality — deferred here per the plan's grain R&D spike, risk #2). Full
 //! desaturation is applied unconditionally for monochrome simulations by
 //! `pipeline::apply_recipe_to_pixel`, so `Recipe.color` is not meaningful
@@ -9,7 +9,7 @@
 //! Per-filter (Yellow/Red/Green) channel-mix weighting is deferred to
 //! Phase 2's full parameter set; `acros_filter` is `None` here.
 //!
-//! Not yet visually validated against a real Fuji ACROS JPEG — provisional
+//! Not yet visually validated against a a real ACROS JPEG — provisional
 //! pending a reference photo comparison.
 
 use crate::recipe::{

@@ -1,16 +1,19 @@
-// "Continue with Google" entry point.
+// "Continue with Google" — the ONLY way into the app.
 //
-// When a real Google client id is provided (VITE_GOOGLE_CLIENT_ID at build
-// time), this loads Google Identity Services and renders Google's official
-// button. Sign-in happens entirely on Google's side; GIS hands back a signed
-// JWT credential which we decode CLIENT-SIDE only to show the user's name — we
-// never send it anywhere, never verify it against a backend (there is none),
-// and never store it. That keeps the app's "no data saved on our servers"
-// promise intact while still using Google as the identity provider.
+// Authentication happens entirely on Google's side via Google Identity
+// Services (GIS). Google's own flow guides both first-time sign-up and
+// returning sign-in (account chooser / consent), so a single button covers
+// both. GIS hands back a signed JWT credential which we decode CLIENT-SIDE
+// only to show the user's name — we never send it anywhere, never verify it
+// against a backend (there is none), and never store it. That keeps the app's
+// "no data saved on our servers" promise intact while still using Google as
+// the sole identity provider.
 //
-// With no client id configured (local dev / preview), it falls back to a
-// styled button that starts a local guest session so the landing page is fully
-// usable without Google setup.
+// There is deliberately NO guest / bypass path: without a successful Google
+// authentication the app cannot be entered. A real Google OAuth client id
+// must be provided at build time via VITE_GOOGLE_CLIENT_ID; when it is missing
+// the button is disabled and explains that setup is required, rather than
+// letting anyone in.
 
 import { useEffect, useRef, useState } from "react";
 import type { AuthUser } from "../auth";
@@ -29,8 +32,11 @@ interface GoogleIdentity {
       initialize: (config: {
         client_id: string;
         callback: (response: GoogleCredentialResponse) => void;
+        auto_select?: boolean;
+        cancel_on_tap_outside?: boolean;
       }) => void;
       renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+      prompt: () => void;
     };
   };
 }
@@ -60,7 +66,7 @@ export function GoogleLoginButton({ onSignIn }: GoogleLoginButtonProps) {
   const [gisReady, setGisReady] = useState(false);
 
   useEffect(() => {
-    if (!CLIENT_ID) return; // fall back path — no script load
+    if (!CLIENT_ID) return; // no client id → nothing to initialize (see disabled UI below)
 
     let cancelled = false;
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${GSI_SRC}"]`);
@@ -74,6 +80,10 @@ export function GoogleLoginButton({ onSignIn }: GoogleLoginButtonProps) {
           const { name, email } = decodeJwtName(response.credential);
           onSignIn({ name, email, provider: "google" });
         },
+        // Don't silently reuse a session — always let the user pick/confirm the
+        // Google account, so every entry is an explicit authentication.
+        auto_select: false,
+        cancel_on_tap_outside: true,
       });
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "filled_black",
@@ -82,6 +92,8 @@ export function GoogleLoginButton({ onSignIn }: GoogleLoginButtonProps) {
         text: "continue_with",
         logo_alignment: "left",
       });
+      // Also surface Google's One Tap prompt to guide returning users.
+      window.google.accounts.id.prompt();
       setGisReady(true);
     }
 
@@ -100,30 +112,39 @@ export function GoogleLoginButton({ onSignIn }: GoogleLoginButtonProps) {
     };
   }, [onSignIn]);
 
-  // Real Google button (mounted into this container by GIS).
-  if (CLIENT_ID) {
+  // Sign-in is unavailable until a real Google client id is configured. Show a
+  // clearly disabled control — there is no guest / bypass entry into the app.
+  if (!CLIENT_ID) {
     return (
-      <div>
-        <div ref={buttonRef} />
-        {!gisReady && <p className="mt-2 text-xs text-neutral-400">Loading Google sign-in…</p>}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          className="inline-flex cursor-not-allowed items-center gap-3 rounded-full bg-white/60 px-5 py-3 text-sm font-medium text-neutral-500 shadow-lg"
+        >
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden className="opacity-60">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+          Continue with Google
+        </button>
+        <p className="text-xs text-amber-300/90">
+          Google sign-in isn&apos;t configured yet. Set{" "}
+          <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px]">VITE_GOOGLE_CLIENT_ID</code>{" "}
+          to enable it.
+        </p>
       </div>
     );
   }
 
-  // Fallback: local guest session, styled to match Google's button.
+  // Real Google button (mounted into this container by GIS).
   return (
-    <button
-      type="button"
-      onClick={() => onSignIn({ name: "Guest", provider: "guest" })}
-      className="inline-flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-medium text-neutral-800 shadow-lg transition-transform hover:scale-[1.02] active:scale-100"
-    >
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-      </svg>
-      Continue with Google
-    </button>
+    <div>
+      <div ref={buttonRef} />
+      {!gisReady && <p className="mt-2 text-xs text-neutral-400">Loading Google sign-in…</p>}
+    </div>
   );
 }

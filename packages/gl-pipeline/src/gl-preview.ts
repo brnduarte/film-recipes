@@ -9,7 +9,7 @@ import vertSrc from "./shaders/preview.vert.glsl?raw";
 import recipeFragSrc from "./shaders/recipe.frag.glsl?raw";
 import { computeUniformsForRecipe } from "./recipe-uniforms";
 import { link, setRecipeUniforms } from "./gl-program";
-import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
+import type { ManualAdjustments, Recipe } from "@film-recipes/core-types";
 
 export class GlPreview {
   private gl: WebGL2RenderingContext;

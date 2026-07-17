@@ -1,7 +1,7 @@
 // Sole IndexedDB write path, per the plan's privacy section 7: this is the
 // only module in the app allowed to touch IndexedDB, and its exported
 // functions only ever accept/return `Preset`/`PresetExport` shapes (see
-// @fuji-recipes/core-types) — there is no code path here that could accept
+// @film-recipes/core-types) — there is no code path here that could accept
 // an image Blob/ArrayBuffer, since no function signature admits one. Photo
 // pixel data lives only in an in-memory runtime map elsewhere in the app
 // and is never passed to this module.
@@ -13,10 +13,10 @@
 // `clearAllData`, when a first real preference exists.
 
 import { openDB, type IDBPDatabase } from "idb";
-import type { Preset, PresetExport } from "@fuji-recipes/core-types";
-import { CURRENT_PRESET_SCHEMA_VERSION } from "@fuji-recipes/core-types";
+import type { Preset, PresetExport } from "@film-recipes/core-types";
+import { CURRENT_PRESET_SCHEMA_VERSION } from "@film-recipes/core-types";
 
-const DB_NAME = "fuji-recipes";
+const DB_NAME = "film-recipes";
 const DB_VERSION = 1;
 const PRESETS_STORE = "presets";
 

@@ -1,10 +1,10 @@
 {
-  "name": "@fuji-recipes/recipes-catalog",
+  "name": "@film-recipes/recipes-catalog",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@fuji-recipes/core-types": "workspace:*"
+    "@film-recipes/core-types": "workspace:*"
   }
 }

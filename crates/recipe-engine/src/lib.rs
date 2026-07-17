@@ -161,19 +161,19 @@ mod tests {
     }
 
     #[test]
-    fn wes_anderson_cool_kelvin_differs_from_neutral() {
-        // 4350K is well below the 5500K reference, so the Kelvin gain alone
-        // (before shifts) must move the result away from a neutral-WB
-        // Classic Chrome render — confirming Kelvin is live, not just shifts.
-        let wes = super::named_recipes::wes_anderson_recipe();
-        let mut neutral = wes.clone();
+    fn named_recipe_white_balance_differs_from_neutral() {
+        // California Summer sets a non-default Kelvin (6700K) plus R/B shifts,
+        // so the recipe's white balance must move the result away from a
+        // neutral-WB render — confirming the WB stage is live, not a no-op.
+        let recipe = super::named_recipes::california_summer_recipe();
+        let mut neutral = recipe.clone();
         neutral.white_balance = super::recipe::WhiteBalance::default();
         let manual = ManualAdjustments::default();
 
-        let wes_out = apply_recipe_to_pixel([0.5, 0.5, 0.5], &wes, &manual);
+        let recipe_out = apply_recipe_to_pixel([0.5, 0.5, 0.5], &recipe, &manual);
         let neutral_out = apply_recipe_to_pixel([0.5, 0.5, 0.5], &neutral, &manual);
         assert!(
-            wes_out != neutral_out,
+            recipe_out != neutral_out,
             "expected the recipe's white balance to change the output vs neutral WB"
         );
     }

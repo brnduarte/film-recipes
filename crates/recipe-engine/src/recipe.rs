@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Fujifilm film simulation modes relevant to recipe building.
+/// Film simulation modes relevant to recipe building.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FilmSimulation {
     Provia,
@@ -36,7 +36,7 @@ pub enum AcrosFilter {
     Green,
 }
 
-/// Fuji DR (dynamic range) setting: widens tonal range by underexposing the
+/// DR (dynamic range) setting: widens tonal range by underexposing the
 /// base capture and lifting shadows in-camera. Represented here as the
 /// nominal percentage, applied as a highlight-rolloff/shadow-lift strength.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,7 +46,7 @@ pub enum DynamicRange {
     Dr400,
 }
 
-/// -2..+4 in Fuji's own step scale (Soft..Hard), stored as a signed strength.
+/// -2..+4 in the camera's own step scale (Soft..Hard), stored as a signed strength.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ToneSetting {
     pub highlight: i8, // -2..+4
@@ -68,7 +68,7 @@ pub enum ColorChromeStrength {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct GrainSettings {
-    pub strength: ColorChromeStrength, // Off/Weak/Strong reused: Fuji uses same 3-step scale
+    pub strength: ColorChromeStrength, // Off/Weak/Strong reused: the camera uses same 3-step scale
     pub size: GrainSize,
 }
 
@@ -97,7 +97,7 @@ pub enum WhiteBalanceMode {
 pub struct WhiteBalance {
     pub mode: WhiteBalanceMode,
     pub kelvin: u32, // 2500..10000
-    pub red_shift: i8, // -9..+9, Fuji WB shift scale
+    pub red_shift: i8, // -9..+9, camera WB shift scale
     pub blue_shift: i8, // -9..+9
 }
 
@@ -107,7 +107,7 @@ impl Default for WhiteBalance {
     }
 }
 
-/// All real Fuji recipe parameters — the "what film simulation this is"
+/// All real recipe parameters — the "what film simulation this is"
 /// definition, independent of any particular photo.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Recipe {
@@ -127,7 +127,7 @@ pub struct Recipe {
 
 impl Recipe {
     /// Neutral Provia baseline — every other recipe starts from this and
-    /// overrides fields, matching how a Fuji shooter builds a recipe.
+    /// overrides fields, matching how a shooter builds a recipe.
     pub fn provia_baseline() -> Self {
         Self {
             film_simulation: FilmSimulation::Provia,

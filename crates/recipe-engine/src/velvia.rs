@@ -1,11 +1,11 @@
 //! Velvia film simulation — Phase 1 recipe #2. Publicly documented
-//! characteristics: Fuji's most vivid, high-contrast, highly saturated
+//! characteristics: the most vivid, high-contrast, highly saturated
 //! simulation (modeled on Velvia slide film), punchy blacks, minimal
 //! dynamic-range flattening (shot at base DR since the look is built on
 //! contrast, not a wide flat capture).
 //!
 //! Like Classic Chrome, this has not been visually validated against a real
-//! Fuji Velvia JPEG — provisional pending a reference photo comparison.
+//! a Velvia JPEG — provisional pending a reference photo comparison.
 
 use crate::recipe::{
     AcrosFilter, ColorChromeStrength, DynamicRange, FilmSimulation, GrainSettings, Recipe,

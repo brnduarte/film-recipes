@@ -119,13 +119,13 @@ pub fn named_recipes_json() -> String {
         kodachrome_25_recipe(),
         kodak_vision3_250d_recipe(),
         kodak_gold_max_expired_recipe(),
-        // Fujifilm film stocks
+        // Additional film stocks
         superia_xtra_400_recipe(),
-        fujicolor_natura_1600_recipe(),
+        natura_1600_recipe(),
         reala_ace_recipe(),
         easy_reala_ace_recipe(),
-        fujifilm_negative_recipe(),
-        fujicolor_100_industrial_recipe(),
+        color_negative_recipe(),
+        industrial_100_recipe(),
         pro_negative_160c_recipe(),
         provia_positive_recipe(),
         vivid_velvia_recipe(),

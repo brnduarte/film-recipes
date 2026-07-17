@@ -8,7 +8,7 @@
 //
 // The named recipes (which can share a base `film_simulation`) are paired
 // positionally with the Rust `named_recipes_json` order — see the UI's
-// recipe resolver. The base Fuji film simulations remain internal pipeline
+// recipe resolver. The base film simulations remain internal pipeline
 // building blocks (crates/recipe-engine) but are no longer offered as
 // standalone selectable recipes.
 export interface RecipeCatalogEntry {
@@ -19,8 +19,7 @@ export interface RecipeCatalogEntry {
 
 // Named community recipes, in the SAME order as Rust's `named_recipes_json`
 // (crates/wasm-bridge) so they pair positionally with the `Recipe[]` the
-// backend returns. Values sourced from Fuji X Weekly (fujixweekly.com)
-// X-Trans V recipes.
+// backend returns. Values sourced from community film-simulation recipes.
 export const NAMED_RECIPES: RecipeCatalogEntry[] = [
   // ── Kodak film stocks ──────────────────────────────────────────────
   {
@@ -69,15 +68,15 @@ export const NAMED_RECIPES: RecipeCatalogEntry[] = [
     description: "Warm expired consumer-film aesthetic with strong grain and nostalgic color shift.",
   },
 
-  // ── Fujifilm film stocks ───────────────────────────────────────────
+  // ── Additional film stocks ─────────────────────────────────────────
   {
     id: "superia-xtra-400",
     name: "Superia Xtra 400",
     description: "Warm everyday consumer film with punchy saturated color.",
   },
   {
-    id: "fujicolor-natura-1600",
-    name: "Fujicolor Natura 1600",
+    id: "natura-1600",
+    name: "Natura 1600",
     description: "High-ISO Japanese film — muted, desaturated, heavy grain, soft and dreamy.",
   },
   {
@@ -91,19 +90,19 @@ export const NAMED_RECIPES: RecipeCatalogEntry[] = [
     description: "Gentle, true-to-life with neutral, natural color reproduction.",
   },
   {
-    id: "fujifilm-negative",
-    name: "Fujifilm Negative",
+    id: "color-negative",
+    name: "Color Negative",
     description: "Clean warm daylight film with gentle tones and natural color.",
   },
   {
-    id: "fujicolor-100-industrial",
-    name: "Fujicolor 100 Industrial",
+    id: "industrial-100",
+    name: "Industrial 100",
     description: "Very warm industrial look with strong red/blue shift and lifted shadows.",
   },
   {
     id: "pro-negative-160c",
     name: "PRO Negative 160C",
-    description: "Versatile everyday recipe emulating the discontinued Fujicolor PRO 160C.",
+    description: "Versatile everyday recipe emulating a discontinued warm 160-speed film stock.",
   },
   {
     id: "provia-positive",

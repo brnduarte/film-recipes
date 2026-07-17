@@ -9,7 +9,7 @@
 //
 // White balance mirrors crates/recipe-engine/src/white_balance.rs: the
 // Tanner Helland Kelvin->RGB polynomial, normalized to a 5500K reference so
-// an unmodified recipe is a no-op, then Fuji's red/blue shift (each step a
+// an unmodified recipe is a no-op, then the camera's red/blue shift (each step a
 // ~2% multiplicative nudge). Named recipes derive most of their look from
 // these WB shifts, so this must be live in the preview.
 //
@@ -19,7 +19,7 @@
 // TS/bundler dependency, matching the existing classic-chrome-reference.mjs
 // precedent.
 
-import type { ColorChromeStrength, ColorGrade, DynamicRange, FilmSimulation, ManualAdjustments, Recipe, ToneSetting, WhiteBalance } from "@fuji-recipes/core-types";
+import type { ColorChromeStrength, ColorGrade, DynamicRange, FilmSimulation, ManualAdjustments, Recipe, ToneSetting, WhiteBalance } from "@film-recipes/core-types";
 
 // Must match MAX_GRADE_STOPS in shaders/recipe.frag.glsl.
 export const MAX_GRADE_STOPS = 6;

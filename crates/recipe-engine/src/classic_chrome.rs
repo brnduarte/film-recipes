@@ -5,7 +5,7 @@
 //! blacks, a soft highlight rolloff, and a slight cool/green cast in
 //! shadows versus a slightly warm neutral in highlights.
 //!
-//! IMPORTANT: this has not yet been visually validated against a real Fuji
+//! IMPORTANT: this has not yet been visually validated against a real reference
 //! Classic Chrome JPEG (Spike C exit criteria) — no reference photo has
 //! been supplied. The control points below are a best-effort starting point
 //! from public descriptions of the simulation, not measured from a real

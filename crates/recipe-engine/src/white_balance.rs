@@ -1,4 +1,4 @@
-//! White balance: Kelvin temperature -> RGB channel gain, plus Fuji's
+//! White balance: Kelvin temperature -> RGB channel gain, plus the camera's
 //! red/blue shift fine-tuning applied on top.
 
 use crate::recipe::WhiteBalance;
@@ -48,12 +48,12 @@ pub fn kelvin_to_rgb_gain(kelvin: u32) -> [f32; 3] {
     [reference[0] / raw[0], reference[1] / raw[1], reference[2] / raw[2]]
 }
 
-/// Apply full white balance (Kelvin gain + Fuji-scale red/blue shift) to a
+/// Apply full white balance (Kelvin gain + camera-scale red/blue shift) to a
 /// linear RGB pixel.
 pub fn apply_white_balance(rgb: [f32; 3], wb: &WhiteBalance) -> [f32; 3] {
     let [gr, gg, gb] = kelvin_to_rgb_gain(wb.kelvin);
 
-    // Fuji's WB shift is a -9..+9 scale; empirically each step is roughly a
+    // The WB shift is a -9..+9 scale; empirically each step is roughly a
     // 2% multiplicative nudge on the respective channel.
     let red_shift = 1.0 + (wb.red_shift as f32) * 0.02;
     let blue_shift = 1.0 + (wb.blue_shift as f32) * 0.02;

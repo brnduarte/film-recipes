@@ -1,5 +1,5 @@
 //! Monochrome / Sepia film simulations — Phase 2 recipes. Publicly
-//! documented characteristics: Monochrome is Fuji's plain neutral black &
+//! documented characteristics: Monochrome is the plain neutral black &
 //! white mode (no per-filter contrast shaping beyond what ACROS adds — see
 //! `acros_filter` on both recipes here for the shared Yellow/Red/Green
 //! emulation, deferred to Phase 2's full parameter set same as ACROS);

@@ -52,7 +52,7 @@ test("no external network requests during import, edit, or export", async ({ pag
     page.waitForEvent("download"),
     page.locator("#export-jpeg").click(),
   ]);
-  expect(download.suggestedFilename()).toBe("fuji-recipe-export.jpg");
+  expect(download.suggestedFilename()).toBe("film-recipe-export.jpg");
   await expect(page.locator("#status")).toHaveText(/Exported JPEG/, { timeout: 30_000 });
 
   expect(

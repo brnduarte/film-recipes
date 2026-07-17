@@ -8,7 +8,7 @@ use crate::recipe::{DynamicRange, FilmSimulation, Recipe, ToneSetting};
 fn dynamic_range_curve(dr: DynamicRange, tone: ToneSetting) -> ToneCurve {
     // DR400/DR200 lift shadows and extend highlight rolloff versus DR100.
     // `tone.highlight`/`tone.shadow` (-2..+4) fine-tune on top, matching the
-    // Fuji in-camera Highlight/Shadow menu.
+    // the in-camera Highlight/Shadow menu.
     let dr_shadow_lift = match dr {
         DynamicRange::Dr100 => 0.0,
         DynamicRange::Dr200 => 0.03,

@@ -93,7 +93,7 @@ export function IconSidebar({
       {/* App mark */}
       <div className="group relative mb-2 flex size-10 items-center justify-center rounded-xl bg-neutral-800 text-sm font-bold text-neutral-100 shadow-lg ring-1 ring-white/10">
         F
-        <Tooltip label="Fuji Recipes" />
+        <Tooltip label="Film Recipes" />
       </div>
 
       {hasImage && (

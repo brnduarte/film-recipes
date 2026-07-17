@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GlPreview, RecipeThumbnailRenderer } from "@fuji-recipes/gl-pipeline";
-import { decode, exportJpeg, getNamedRecipes } from "@fuji-recipes/processing-web";
-import { NAMED_RECIPES } from "@fuji-recipes/recipes-catalog";
-import { clearAllData } from "@fuji-recipes/storage";
-import type { Recipe } from "@fuji-recipes/core-types";
+import { GlPreview, RecipeThumbnailRenderer } from "@film-recipes/gl-pipeline";
+import { decode, exportJpeg, getNamedRecipes } from "@film-recipes/processing-web";
+import { NAMED_RECIPES } from "@film-recipes/recipes-catalog";
+import { clearAllData } from "@film-recipes/storage";
+import type { Recipe } from "@film-recipes/core-types";
 import { useEditorStore, NEUTRAL_MANUAL } from "./store";
 import { useAuthStore } from "./auth";
 import { ImportZone } from "./components/ImportZone";
@@ -135,7 +135,7 @@ export function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "fuji-recipe-export.jpg";
+      link.download = "film-recipe-export.jpg";
       link.click();
       URL.revokeObjectURL(url);
       setStatus("Exported JPEG.");
@@ -245,7 +245,7 @@ export function App() {
       {hasImage && (
         <aside className="animate-slide-in-left absolute inset-y-0 left-14 z-20 flex w-[272px] flex-col border-r border-white/10 bg-neutral-900/70 backdrop-blur-xl">
           <div className="px-4 pb-3 pt-4">
-            <h1 className="text-base font-semibold">Fuji Recipes</h1>
+            <h1 className="text-base font-semibold">Film Recipes</h1>
             <p id="status" className="mt-0.5 line-clamp-2 text-xs text-neutral-400">
               {status}
             </p>
@@ -266,7 +266,7 @@ export function App() {
       {!hasImage && (
         <>
           <div className="absolute left-20 top-4 z-10">
-            <h1 className="text-lg font-semibold">Fuji Recipes</h1>
+            <h1 className="text-lg font-semibold">Film Recipes</h1>
             <p id="status" className="text-xs text-neutral-300">
               {status}
             </p>

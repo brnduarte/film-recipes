@@ -29,19 +29,19 @@ importers:
 
   apps/web:
     dependencies:
-      '@fuji-recipes/core-types':
+      '@film-recipes/core-types':
         specifier: workspace:*
         version: link:../../packages/core-types
-      '@fuji-recipes/gl-pipeline':
+      '@film-recipes/gl-pipeline':
         specifier: workspace:*
         version: link:../../packages/gl-pipeline
-      '@fuji-recipes/processing-web':
+      '@film-recipes/processing-web':
         specifier: workspace:*
         version: link:../../packages/processing-web
-      '@fuji-recipes/recipes-catalog':
+      '@film-recipes/recipes-catalog':
         specifier: workspace:*
         version: link:../../packages/recipes-catalog
-      '@fuji-recipes/storage':
+      '@film-recipes/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       '@radix-ui/react-radio-group':
@@ -86,25 +86,25 @@ importers:
 
   packages/gl-pipeline:
     dependencies:
-      '@fuji-recipes/core-types':
+      '@film-recipes/core-types':
         specifier: workspace:*
         version: link:../core-types
 
   packages/processing-web:
     dependencies:
-      '@fuji-recipes/core-types':
+      '@film-recipes/core-types':
         specifier: workspace:*
         version: link:../core-types
 
   packages/recipes-catalog:
     dependencies:
-      '@fuji-recipes/core-types':
+      '@film-recipes/core-types':
         specifier: workspace:*
         version: link:../core-types
 
   packages/storage:
     dependencies:
-      '@fuji-recipes/core-types':
+      '@film-recipes/core-types':
         specifier: workspace:*
         version: link:../core-types
       idb:

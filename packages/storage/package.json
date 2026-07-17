@@ -1,5 +1,5 @@
 {
-  "name": "@fuji-recipes/storage",
+  "name": "@film-recipes/storage",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "test": "tsx test/storage.test.ts"
   },
   "dependencies": {
-    "@fuji-recipes/core-types": "workspace:*",
+    "@film-recipes/core-types": "workspace:*",
     "idb": "^8.0.0"
   },
   "devDependencies": {

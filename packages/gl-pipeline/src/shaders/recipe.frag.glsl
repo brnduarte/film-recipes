@@ -28,7 +28,7 @@ precision highp float;
 // its own curve, this shader (and recipe-uniforms.ts / recipe-reference.mjs)
 // needs to generalize further.
 //
-// NOT YET visually validated against real Fuji reference JPEGs — see the
+// NOT YET visually validated against real reference JPEGs — see the
 // doc comments on classic_chrome.rs / velvia.rs / acros.rs.
 
 uniform sampler2D u_image;

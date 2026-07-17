@@ -9,7 +9,7 @@
 // while dragging any other handle fine-tunes just that stop.
 
 import { useCallback, useEffect, useRef } from "react";
-import type { ColorGradeStop, ColorHarmony } from "@fuji-recipes/core-types";
+import type { ColorGradeStop, ColorHarmony } from "@film-recipes/core-types";
 
 const SIZE = 220; // canvas px (square)
 const RADIUS = SIZE / 2;

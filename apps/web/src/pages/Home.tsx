@@ -20,7 +20,7 @@ export function Home() {
           <span className="flex size-10 items-center justify-center rounded-xl bg-neutral-800 text-sm font-bold text-neutral-100 shadow-lg ring-1 ring-white/10">
             F
           </span>
-          <span className="text-sm font-semibold tracking-wide text-neutral-200">Fuji Recipes</span>
+          <span className="text-sm font-semibold tracking-wide text-neutral-200">Film Recipes</span>
         </div>
 
         <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
@@ -28,7 +28,7 @@ export function Home() {
         </h1>
 
         <p className="max-w-md text-base leading-relaxed text-neutral-300">
-          Apply authentic Fujifilm film-simulation recipes to any photo, right in your browser.
+          Apply authentic film-simulation recipes to any photo, right in your browser.
           Every edit runs on your device — your images never leave your computer and nothing is
           ever uploaded.
         </p>

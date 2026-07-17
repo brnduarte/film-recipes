@@ -1,4 +1,4 @@
-//! Color Chrome Effect / Color Chrome FX Blue: Fuji's per-pixel saturation
+//! Color Chrome Effect / Color Chrome FX Blue: a per-pixel saturation
 //! compression that deepens color separation in strongly saturated areas
 //! (most visible in reds/oranges for CCE, and specifically blues for FX
 //! Blue) instead of letting them clip to a flat saturated blob.
@@ -6,7 +6,7 @@
 //! Modeled here as: convert to a cheap HSV-like saturation/value split,
 //! apply a saturation-dependent compression curve (stronger effect the more
 //! saturated the pixel already is), convert back. This is a simplification
-//! of Fuji's actual per-hue tone mapping, sufficient for the Spike C
+//! of the actual per-hue tone mapping, sufficient for the Spike C
 //! "is it convincing" gate; can be refined once a real reference photo is
 //! available for comparison.
 
@@ -72,7 +72,7 @@ pub fn apply_color_chrome_effect(rgb: [f32; 3], strength: ColorChromeStrength) -
 }
 
 /// Apply Color Chrome FX Blue: same idea as CCE but restricted to the blue
-/// hue range (~200-260 degrees), matching Fuji's blue-sky/water-specific
+/// hue range (~200-260 degrees), matching the blue-sky/water-specific
 /// effect.
 pub fn apply_color_chrome_fx_blue(rgb: [f32; 3], strength: ColorChromeStrength) -> [f32; 3] {
     let amount = strength_factor(strength);

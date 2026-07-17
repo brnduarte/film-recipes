@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { ColorHarmony, ManualAdjustments } from "@fuji-recipes/core-types";
+import type { ColorHarmony, ManualAdjustments } from "@film-recipes/core-types";
 import { useEditorStore } from "../store";
 import { ColorWheel, stopsForHarmony } from "./ColorWheel";
 

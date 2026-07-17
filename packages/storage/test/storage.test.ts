@@ -4,7 +4,7 @@
 // here, so testing the real module directly is what's worth doing.
 import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
-import type { Preset } from "@fuji-recipes/core-types";
+import type { Preset } from "@film-recipes/core-types";
 import * as storage from "../src/index";
 
 function samplePreset(overrides: Partial<Preset> = {}): Preset {

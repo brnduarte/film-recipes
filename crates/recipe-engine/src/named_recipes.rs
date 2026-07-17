@@ -1,14 +1,14 @@
-//! Named community "recipes" — the popular looks that Fuji shooters build
+//! Named community "recipes" — the popular looks that shooters build
 //! on top of a base film simulation by dialing in white balance, dynamic
 //! range, tone, color, grain, and Color Chrome settings. Values transcribed
-//! from Fuji X Weekly (fujixweekly.com) X-Trans V recipes.
+//! from community film-simulation recipes.
 //!
 //! These differ from the 12 base film simulations in `built_in_recipes`:
 //! several share the same base (e.g. ClassicChrome), so they are keyed by a
 //! stable string id in the UI catalog (packages/recipes-catalog), not by
 //! `film_simulation`.
 //!
-//! Where the reference uses half-steps that don't fit Fuji's integer
+//! Where the reference uses half-steps that don't fit the integer
 //! highlight/shadow scale (`ToneSetting` is `i8`), the value is rounded away
 //! from zero (e.g. -1.5 -> -2, +0.5 -> +1). Grain, clarity, and sharpness/NR
 //! are carried in the `Recipe` for fidelity but are not yet applied by the
@@ -238,7 +238,7 @@ pub fn kodak_gold_max_expired_recipe() -> Recipe {
     }
 }
 
-// ── Fujifilm film stocks ─────────────────────────────────────────────
+// ── Additional film stocks ───────────────────────────────────────────
 
 /// Superia Xtra 400 — Classic Negative, warm everyday consumer film with
 /// punchy saturated color and a slightly lifted shadow.
@@ -264,9 +264,9 @@ pub fn superia_xtra_400_recipe() -> Recipe {
     }
 }
 
-/// Fujicolor Natura 1600 — Classic Negative, high-ISO Japanese film with
+/// Natura 1600 — Classic Negative, high-ISO Japanese film with
 /// muted desaturated palette, heavy grain, and a soft, dreamy quality.
-pub fn fujicolor_natura_1600_recipe() -> Recipe {
+pub fn natura_1600_recipe() -> Recipe {
     Recipe {
         film_simulation: FilmSimulation::ClassicNeg,
         acros_filter: AcrosFilter::None,
@@ -336,9 +336,9 @@ pub fn easy_reala_ace_recipe() -> Recipe {
     }
 }
 
-/// Fujifilm Negative — Reala Ace base, clean, warm daylight film with
+/// Color Negative — Reala Ace base, clean, warm daylight film with
 /// gentle tones and natural color.
-pub fn fujifilm_negative_recipe() -> Recipe {
+pub fn color_negative_recipe() -> Recipe {
     Recipe {
         film_simulation: FilmSimulation::RealaAce,
         acros_filter: AcrosFilter::None,
@@ -360,9 +360,9 @@ pub fn fujifilm_negative_recipe() -> Recipe {
     }
 }
 
-/// Fujicolor 100 Industrial — Reala Ace, very warm (3100K) industrial look
+/// Industrial 100 — Reala Ace, very warm (3100K) industrial look
 /// with strong red/blue shift and lifted shadows.
-pub fn fujicolor_100_industrial_recipe() -> Recipe {
+pub fn industrial_100_recipe() -> Recipe {
     Recipe {
         film_simulation: FilmSimulation::RealaAce,
         acros_filter: AcrosFilter::None,
@@ -384,8 +384,8 @@ pub fn fujicolor_100_industrial_recipe() -> Recipe {
     }
 }
 
-/// PRO Negative 160C — Reala Ace, versatile everyday recipe emulating the
-/// discontinued Fujicolor PRO 160C film stock. Gentle, warm tones.
+/// PRO Negative 160C — Reala Ace, versatile everyday recipe emulating a
+/// discontinued warm 160-speed film stock. Gentle, warm tones.
 pub fn pro_negative_160c_recipe() -> Recipe {
     Recipe {
         film_simulation: FilmSimulation::RealaAce,

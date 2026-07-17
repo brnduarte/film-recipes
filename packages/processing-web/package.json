@@ -1,5 +1,5 @@
 {
-  "name": "@fuji-recipes/processing-web",
+  "name": "@film-recipes/processing-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,6 +8,6 @@
     "build:wasm": "wasm-pack build ../../crates/wasm-bridge --target web --out-dir ../../packages/processing-web/src/wasm --out-name wasm_bridge"
   },
   "dependencies": {
-    "@fuji-recipes/core-types": "workspace:*"
+    "@film-recipes/core-types": "workspace:*"
   }
 }

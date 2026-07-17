@@ -30,7 +30,7 @@ export function Terms() {
         <header className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold">Terms &amp; Privacy</h1>
           <p className="text-sm text-neutral-400">
-            Plain-language terms for using Fuji Recipes. The short version: your photos stay on your
+            Plain-language terms for using Film Recipes. The short version: your photos stay on your
             device, and we don&apos;t keep your data.
           </p>
         </header>
@@ -38,7 +38,7 @@ export function Terms() {
         {/* The headline privacy guarantee, called out. */}
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
           <p className="text-sm font-medium text-emerald-200">
-            No data is stored on our servers. Fuji Recipes has no backend that receives, processes,
+            No data is stored on our servers. Film Recipes has no backend that receives, processes,
             or retains your photos, edits, or personal information. Everything happens locally in
             your browser.
           </p>
@@ -46,7 +46,7 @@ export function Terms() {
 
         <Section title="1. What the app does">
           <p>
-            Fuji Recipes is a client-side photo editor that applies Fujifilm-style film-simulation
+            Film Recipes is a client-side photo editor that applies classic film-simulation
             recipes to images you open. All decoding, editing, and exporting is performed on your
             own device using code running in your browser.
           </p>
