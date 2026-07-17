@@ -28,8 +28,12 @@ interface EditorState {
   selectedRecipeId: string;
   /** Global manual grade applied on top of the selected recipe. */
   manual: ManualAdjustments;
-  /** True while the before/after toggle is showing the untouched decode. */
-  showOriginal: boolean;
+  /** Before/after divider position in [0,1]: pixels left of it show the
+   *  untouched original, pixels right of it show the recipe. 0.5 = centered. */
+  splitX: number;
+  /** Per-recipe preview thumbnails (PNG data URLs), keyed by catalog id.
+   *  Regenerated from the current photo each time one is decoded. */
+  recipeThumbnails: Record<string, string>;
 
   setStatus: (status: string) => void;
   setNamedRecipes: (recipes: Recipe[]) => void;
@@ -37,7 +41,8 @@ interface EditorState {
   setSelectedRecipeId: (id: string) => void;
   setManual: (patch: Partial<ManualAdjustments>) => void;
   resetManual: () => void;
-  setShowOriginal: (show: boolean) => void;
+  setSplitX: (splitX: number) => void;
+  setRecipeThumbnails: (thumbnails: Record<string, string>) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -46,7 +51,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   namedRecipes: [],
   selectedRecipeId: "kodak-portra-400",
   manual: { ...NEUTRAL_MANUAL },
-  showOriginal: false,
+  splitX: 0.5,
+  recipeThumbnails: {},
 
   setStatus: (status) => set({ status }),
   setNamedRecipes: (namedRecipes) => set({ namedRecipes }),
@@ -54,5 +60,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   setSelectedRecipeId: (selectedRecipeId) => set({ selectedRecipeId }),
   setManual: (patch) => set((s) => ({ manual: { ...s.manual, ...patch } })),
   resetManual: () => set({ manual: { ...NEUTRAL_MANUAL } }),
-  setShowOriginal: (showOriginal) => set({ showOriginal }),
+  setSplitX: (splitX) => set({ splitX }),
+  setRecipeThumbnails: (recipeThumbnails) => set({ recipeThumbnails }),
 }));

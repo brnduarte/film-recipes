@@ -75,11 +75,11 @@ fn main() {
         golden_for("kodak-portra-400", &recipe_engine::named_recipes::kodak_portra_400_recipe()),
         golden_for("kodak-gold-200", &recipe_engine::named_recipes::kodak_gold_200_recipe()),
         golden_for("kodak-portra-800", &recipe_engine::named_recipes::kodak_portra_800_recipe()),
-        golden_for("bright-kodak", &recipe_engine::named_recipes::bright_kodak_recipe()),
-        golden_for("grainy-day", &recipe_engine::named_recipes::grainy_day_recipe()),
-        golden_for("wes-anderson", &recipe_engine::named_recipes::wes_anderson_recipe()),
+        golden_for("nostalgia-negative", &recipe_engine::named_recipes::nostalgia_negative_recipe()),
+        golden_for("classic-retro", &recipe_engine::named_recipes::classic_retro_recipe()),
+        golden_for("cinestill-800t", &recipe_engine::named_recipes::cinestill_800t_recipe()),
         golden_with("Provia+manual", &Recipe::provia_baseline(), manual_grade.clone()),
-        golden_with("wes-anderson+manual", &recipe_engine::named_recipes::wes_anderson_recipe(), manual_grade),
+        golden_with("cinestill-800t+manual", &recipe_engine::named_recipes::cinestill_800t_recipe(), manual_grade),
     ];
 
     println!("{}", serde_json::to_string_pretty(&goldens).unwrap());

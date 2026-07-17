@@ -6,6 +6,10 @@ license.workspace = true
 
 [dependencies]
 rawler = "0.7"
+# Standard (non-RAW) formats — JPEG/PNG/TIFF/WebP — are already-developed sRGB
+# images, so they skip rawler's demosaic/develop pipeline and are decoded
+# straight to RGB8 via the `image` crate.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "tiff", "webp"] }
 thiserror = "1"
 
 [dev-dependencies]

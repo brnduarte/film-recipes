@@ -98,6 +98,102 @@ pub fn decode_raw_bytes(bytes: Vec<u8>) -> Result<DecodedRaw, DecodeError> {
     })
 }
 
+/// Decode a standard (already-developed) image — JPEG, PNG, TIFF, or WebP —
+/// from an in-memory byte buffer, into the same `DecodedRaw` RGB shape the
+/// RAW path produces, so the rest of the pipeline (WebGL2 upload, recipe
+/// application, export) treats every source identically. Unlike
+/// `decode_raw_bytes` there's no demosaic/white-balance/color-calibration
+/// step: these formats are already sRGB, so we just decode to RGB8.
+///
+/// Routing between this and `decode_raw_bytes` is done by the caller on file
+/// extension, not by content sniffing, because TIFF-based RAW formats (NEF,
+/// CR2, ARW, DNG) share TIFF's magic bytes and would be misrouted here.
+pub fn decode_image_bytes(bytes: Vec<u8>) -> Result<DecodedRaw, DecodeError> {
+    use image::{DynamicImage, ImageDecoder, ImageReader};
+    use std::io::Cursor;
+
+    // Decode via a decoder (not `load_from_memory`) so we can read the EXIF
+    // Orientation tag and physically rotate the pixels. Cameras store a
+    // portrait shot as landscape sensor data plus an orientation flag; without
+    // applying it, vertical photos come in sideways.
+    let mut decoder = ImageReader::new(Cursor::new(&bytes))
+        .with_guessed_format()
+        .map_err(|e| DecodeError::Decode(e.to_string()))?
+        .into_decoder()
+        .map_err(|e| DecodeError::Decode(e.to_string()))?;
+    let orientation = decoder
+        .orientation()
+        .map_err(|e| DecodeError::Decode(e.to_string()))?;
+    let mut dynamic_image =
+        DynamicImage::from_decoder(decoder).map_err(|e| DecodeError::Decode(e.to_string()))?;
+    dynamic_image.apply_orientation(orientation);
+
+    let rgb8 = dynamic_image.to_rgb8();
+    let width = rgb8.width() as usize;
+    let height = rgb8.height() as usize;
+    let pixels = rgb8
+        .into_raw()
+        .into_iter()
+        .map(|byte| byte as f32 / 255.0)
+        .collect();
+
+    Ok(DecodedRaw {
+        width,
+        height,
+        pixels,
+    })
+}
+
+#[cfg(test)]
+mod exif_orientation {
+    //! Regression test: standard-image decode must honor the EXIF Orientation
+    //! tag, so portrait photos (stored as landscape sensor data + a rotate
+    //! flag) come in upright instead of sideways.
+
+    use super::*;
+
+    /// A minimal EXIF APP1 segment carrying Orientation = 6 (rotate 90° CW),
+    /// to be spliced in right after a JPEG's SOI marker.
+    const EXIF_ORIENTATION_6_APP1: &[u8] = &[
+        0xFF, 0xE1, 0x00, 0x22, // APP1 marker + length (34)
+        b'E', b'x', b'i', b'f', 0x00, 0x00, // "Exif\0\0"
+        0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, // TIFF header (LE), IFD @ 8
+        0x01, 0x00, // 1 IFD entry
+        0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,
+        0x00, // tag 0x0112, SHORT, count 1, value 6
+        0x00, 0x00, 0x00, 0x00, // next-IFD offset = 0
+    ];
+
+    #[test]
+    fn portrait_shot_is_rotated_upright() {
+        use image::{ImageFormat, RgbImage};
+        use std::io::Cursor;
+
+        // A landscape (wider than tall) source, as the sensor stores it.
+        let landscape = RgbImage::from_fn(8, 4, |x, _| image::Rgb([(x * 30) as u8, 0, 0]));
+        let mut jpeg = Vec::new();
+        image::DynamicImage::ImageRgb8(landscape)
+            .write_to(&mut Cursor::new(&mut jpeg), ImageFormat::Jpeg)
+            .unwrap();
+
+        // Splice the orientation-6 EXIF segment in right after SOI (FF D8).
+        assert_eq!(&jpeg[..2], &[0xFF, 0xD8]);
+        let mut with_exif = Vec::with_capacity(jpeg.len() + EXIF_ORIENTATION_6_APP1.len());
+        with_exif.extend_from_slice(&jpeg[..2]);
+        with_exif.extend_from_slice(EXIF_ORIENTATION_6_APP1);
+        with_exif.extend_from_slice(&jpeg[2..]);
+
+        let decoded = decode_image_bytes(with_exif).unwrap();
+        // Orientation 6 swaps dimensions: 8x4 landscape becomes 4x8 portrait.
+        assert!(
+            decoded.height > decoded.width,
+            "expected upright portrait after applying EXIF orientation, got {}x{}",
+            decoded.width,
+            decoded.height,
+        );
+    }
+}
+
 #[cfg(test)]
 mod spike_a_coverage {
     //! Phase 0 Spike A: RAW decode coverage test.

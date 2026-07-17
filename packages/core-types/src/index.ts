@@ -16,6 +16,8 @@ export type FilmSimulation =
   | "ProNegStd"
   | "Eterna"
   | "EternaBleachBypass"
+  | "NostalgicNeg"
+  | "RealaAce"
   | "Acros"
   | "Monochrome"
   | "Sepia";

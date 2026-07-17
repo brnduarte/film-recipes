@@ -23,6 +23,7 @@ export default tseslint.config(
       "**/target/**",
       "**/*.wasm",
       "packages/*/src/wasm/**",
+      "packages/*/wasm/**",
       "third_party/**",
     ],
   },

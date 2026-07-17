@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
 
-const ACCEPTED_EXTENSIONS = ".nef,.raf,.cr2,.cr3,.arw,.dng,.orf";
+const ACCEPTED_EXTENSIONS =
+  ".nef,.raf,.cr2,.cr3,.arw,.dng,.orf,.jpg,.jpeg,.png,.tif,.tiff,.webp";
 
 interface ImportZoneProps {
   onFileSelected: (file: File) => void;
@@ -28,7 +29,7 @@ export function ImportZone({ onFileSelected, disabled, compact }: ImportZoneProp
   if (compact) {
     return (
       <label className="glass glass-hover cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-neutral-200 transition-colors">
-        Open RAW
+        Open image
         <input
           id="file"
           type="file"
@@ -53,7 +54,7 @@ export function ImportZone({ onFileSelected, disabled, compact }: ImportZoneProp
         isDragOver ? "border-neutral-300/70 bg-white/15" : "border-white/25 bg-white/8"
       } ${disabled ? "opacity-50" : ""}`}
     >
-      <p className="text-sm text-neutral-300">Drag a RAW file here, or</p>
+      <p className="text-sm text-neutral-300">Drag an image here, or</p>
       <label className="cursor-pointer rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white">
         Choose file
         <input
@@ -65,7 +66,9 @@ export function ImportZone({ onFileSelected, disabled, compact }: ImportZoneProp
           className="hidden"
         />
       </label>
-      <p className="text-xs text-neutral-500">NEF, RAF, CR2, CR3, ARW, DNG, ORF</p>
+      <p className="text-xs text-neutral-500">
+        RAW: NEF, RAF, CR2, CR3, ARW, DNG, ORF · Image: JPEG, PNG, TIFF, WebP
+      </p>
     </div>
   );
 }

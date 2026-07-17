@@ -17,7 +17,7 @@
 // large RAW decodes don't block the UI thread) is a documented Phase 1/2
 // follow-up, not yet done.
 
-import init, { decode_raw, export_jpeg, init_panic_hook, named_recipes_json } from "./wasm/wasm_bridge.js";
+import init, { decode_raw, decode_image, export_jpeg, init_panic_hook, named_recipes_json } from "./wasm/wasm_bridge.js";
 import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
 
 export interface DecodedImage {
@@ -37,10 +37,29 @@ function ensureWasmInit(): Promise<void> {
   return wasmReady;
 }
 
-/** Decode a RAW file's bytes into an RGBA8 image ready for WebGL2 upload. */
-export async function decode(bytes: Uint8Array): Promise<DecodedImage> {
+// RAW extensions go through rawler's demosaic/develop pipeline; everything
+// else (JPEG/PNG/TIFF/WebP) is an already-developed image decoded straight to
+// RGB. We route on extension, not content sniffing, because TIFF-based RAW
+// formats (NEF/CR2/ARW/DNG) share TIFF's magic bytes.
+const RAW_EXTENSIONS = new Set([
+  "raf", "nef", "cr2", "cr3", "arw", "dng", "orf", "rw2", "pef", "srw", "raw",
+]);
+
+function extensionOf(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  return dot === -1 ? "" : filename.slice(dot + 1).toLowerCase();
+}
+
+/**
+ * Decode an image file's bytes into an RGBA8 image ready for WebGL2 upload.
+ * `filename` selects the decode path: RAW formats go through the rawler
+ * develop pipeline, standard formats (JPEG/PNG/TIFF/WebP) are decoded directly.
+ */
+export async function decode(bytes: Uint8Array, filename: string): Promise<DecodedImage> {
   await ensureWasmInit();
-  const decoded = decode_raw(bytes);
+  const decoded = RAW_EXTENSIONS.has(extensionOf(filename))
+    ? decode_raw(bytes)
+    : decode_image(bytes);
   return { width: decoded.width, height: decoded.height, rgba: decoded.rgba };
 }
 

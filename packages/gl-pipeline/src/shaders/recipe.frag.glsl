@@ -52,6 +52,12 @@ uniform float u_manualSaturation;   // -1..+1
 uniform float u_manualBlackLevel;   // levels black point
 uniform float u_manualWhiteLevel;   // levels white point
 
+// Before/after split: pixels with v_uv.x < u_splitX render the untouched
+// original (the "before" side); pixels to the right render the full recipe.
+// u_splitX = 0.0 shows the recipe everywhere (used for thumbnails/exports);
+// u_splitX = 1.0 shows the untouched original everywhere.
+uniform float u_splitX;
+
 in vec2 v_uv;
 out vec4 outColor;
 
@@ -159,6 +165,12 @@ vec3 sepiaTone(vec3 rgb) {
 
 void main() {
   vec3 rgb = texture(u_image, v_uv).rgb;
+
+  // Left of the split shows the untouched original for before/after compare.
+  if (v_uv.x < u_splitX) {
+    outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+    return;
+  }
 
   // 1. White balance
   rgb *= u_wbGain;

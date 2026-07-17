@@ -6,39 +6,13 @@
 // renders its UI in a webview) can reuse it unchanged in Phase 3.
 
 import vertSrc from "./shaders/preview.vert.glsl?raw";
-import debugFragSrc from "./shaders/debug.frag.glsl?raw";
 import recipeFragSrc from "./shaders/recipe.frag.glsl?raw";
 import { computeUniformsForRecipe } from "./recipe-uniforms";
+import { link, setRecipeUniforms } from "./gl-program";
 import type { ManualAdjustments, Recipe } from "@fuji-recipes/core-types";
-
-function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const log = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(`Shader compile failed: ${log}`);
-  }
-  return shader;
-}
-
-function link(gl: WebGL2RenderingContext, vertSource: string, fragSource: string): WebGLProgram {
-  const vert = compile(gl, gl.VERTEX_SHADER, vertSource);
-  const frag = compile(gl, gl.FRAGMENT_SHADER, fragSource);
-  const program = gl.createProgram()!;
-  gl.attachShader(program, vert);
-  gl.attachShader(program, frag);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(`Program link failed: ${gl.getProgramInfoLog(program)}`);
-  }
-  return program;
-}
 
 export class GlPreview {
   private gl: WebGL2RenderingContext;
-  private debugProgram: WebGLProgram;
   private recipeProgram: WebGLProgram;
   private texture: WebGLTexture;
 
@@ -47,7 +21,6 @@ export class GlPreview {
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;
 
-    this.debugProgram = link(gl, vertSrc, debugFragSrc);
     this.recipeProgram = link(gl, vertSrc, recipeFragSrc);
 
     this.texture = gl.createTexture()!;
@@ -66,45 +39,22 @@ export class GlPreview {
   }
 
   /**
-   * Cheap, GPU-only redraw — this is what runs on every slider/recipe/mode
-   * change. `showOriginal` renders the untouched decode (the "before" side
-   * of the before/after toggle); otherwise `recipe` + `manual`
-   * (ManualAdjustments: exposure + the global grade sliders) are applied via
-   * the generalized recipe shader.
+   * Cheap, GPU-only redraw — this is what runs on every slider/recipe/split
+   * change. `splitX` is the before/after divider position in [0,1]: pixels
+   * left of it show the untouched original, pixels right of it show the full
+   * `recipe` + `manual` grade. `splitX = 0` (the default) applies the recipe
+   * everywhere; `splitX = 1` shows the original everywhere.
    */
-  draw(showOriginal: boolean, recipe: Recipe, manual: ManualAdjustments) {
+  draw(splitX: number, recipe: Recipe, manual: ManualAdjustments) {
     const gl = this.gl;
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-    if (showOriginal) {
-      const program = this.debugProgram;
-      gl.useProgram(program);
-      gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-      gl.uniform1f(gl.getUniformLocation(program, "u_exposure"), 0);
-    } else {
-      const u = computeUniformsForRecipe(recipe, manual);
-      const program = this.recipeProgram;
-      gl.useProgram(program);
-      gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0);
-      gl.uniform3fv(gl.getUniformLocation(program, "u_wbGain"), u.wbGain);
-      gl.uniform1f(gl.getUniformLocation(program, "u_exposureStops"), u.exposureStops);
-      gl.uniform1f(gl.getUniformLocation(program, "u_shadowLift"), u.shadowLift);
-      gl.uniform1f(gl.getUniformLocation(program, "u_highlightPull"), u.highlightPull);
-      gl.uniform1i(gl.getUniformLocation(program, "u_useClassicChromeCurve"), u.useClassicChromeCurve ? 1 : 0);
-      gl.uniform1f(gl.getUniformLocation(program, "u_saturationGain"), u.saturationGain);
-      gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeAmount"), u.colorChromeAmount);
-      gl.uniform1f(gl.getUniformLocation(program, "u_colorChromeFxBlueAmount"), u.colorChromeFxBlueAmount);
-      gl.uniform1i(gl.getUniformLocation(program, "u_useSepiaTone"), u.useSepiaTone ? 1 : 0);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualWhiteBalance"), u.manualWhiteBalance);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualContrast"), u.manualContrast);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualHighlights"), u.manualHighlights);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualShadows"), u.manualShadows);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualSaturation"), u.manualSaturation);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualBlackLevel"), u.manualBlackLevel);
-      gl.uniform1f(gl.getUniformLocation(program, "u_manualWhiteLevel"), u.manualWhiteLevel);
-    }
+    const u = computeUniformsForRecipe(recipe, manual);
+    const program = this.recipeProgram;
+    gl.useProgram(program);
+    setRecipeUniforms(gl, program, u, splitX);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
