@@ -27,7 +27,7 @@ export function RecipeCarousel({ value, onValueChange, disabled, thumbnails }: R
     <div
       role="radiogroup"
       aria-label="Recipe"
-      className="glass glass-dark absolute inset-x-0 bottom-0 z-20 flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 py-3"
+      className="glass glass-dark fixed inset-x-0 bottom-0 z-20 flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 py-3"
     >
       {NAMED_RECIPES.map((entry) => {
         const thumb = thumbnails[entry.id];

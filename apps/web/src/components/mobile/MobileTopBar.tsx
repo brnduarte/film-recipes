@@ -74,7 +74,7 @@ export function MobileTopBar({
   }
 
   return (
-    <header className="glass glass-dark absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 py-2">
+    <header className="glass glass-dark fixed inset-x-0 top-0 z-30 flex items-center justify-between px-3 py-2">
       <span className="flex items-center gap-2">
         <span className="flex size-8 items-center justify-center rounded-lg bg-neutral-800 text-xs font-bold text-neutral-100 ring-1 ring-white/10">
           F
