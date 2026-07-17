@@ -26,15 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node must come first so that every pnpm invocation (including the ones
+      # pnpm/action-setup and dependency install make) runs on Node 22 — pnpm
+      # 11.13+ requires Node >= 22.13 (it uses node:sqlite). `cache: pnpm` is
+      # deliberately omitted here because it would run pnpm before Node 22 is
+      # active, crashing on the runner's default Node 20.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-
-      - uses: actions/setup-node@v4
-        with:
-          # pnpm 11.13+ requires Node >= 22.13 (uses node:sqlite).
-          node-version: 22
-          cache: pnpm
 
       - name: Install Rust (with wasm target)
         uses: dtolnay/rust-toolchain@stable
