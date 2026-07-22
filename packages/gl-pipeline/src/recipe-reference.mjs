@@ -67,6 +67,21 @@ function dynamicRangeParams(dr, tone) {
   return { shadowLift, highlightPull };
 }
 
+// Must match the mode indices documented at u_overlayMode in
+// shaders/recipe.frag.glsl / BLEND_MODE_INDEX in recipe-uniforms.ts.
+const BLEND_MODE_INDEX = {
+  Multiply: 0,
+  ColorBurn: 1,
+  Overlay: 2,
+  SoftLight: 3,
+  HardLight: 4,
+  HardMix: 5,
+  Difference: 6,
+  Exclusion: 7,
+};
+
+const NEUTRAL_OVERLAY = { enabled: false, mode: "Multiply", opacity: 0.5 };
+
 // Identity manual grade — a no-op, matching ManualAdjustments::default().
 const NEUTRAL_MANUAL = {
   exposure: 0,
@@ -78,6 +93,7 @@ const NEUTRAL_MANUAL = {
   black_level: 0,
   white_level: 1,
   color_grade: { enabled: false, harmony: "Complementary", intensity: 0.5, stops: [] },
+  overlay: NEUTRAL_OVERLAY,
 };
 
 const MAX_GRADE_STOPS = 6;
@@ -106,6 +122,7 @@ function computeUniformsForRecipe(recipe, manual) {
   const colorGradeColors = grade.stops
     .slice(0, MAX_GRADE_STOPS)
     .map((s) => gradeHsvToRgb(s.hue, s.saturation, s.value));
+  const overlay = manual.overlay ?? NEUTRAL_OVERLAY;
   return {
     wbGain: wbGainForRecipe(recipe.white_balance),
     exposureStops: recipe.exposure_compensation + manual.exposure,
@@ -127,6 +144,9 @@ function computeUniformsForRecipe(recipe, manual) {
     colorGradeIntensity: grade.intensity,
     colorGradeStopCount: stopCount,
     colorGradeColors,
+    overlayEnabled: overlay.enabled && overlay.opacity > 0,
+    overlayMode: BLEND_MODE_INDEX[overlay.mode],
+    overlayOpacity: overlay.opacity,
   };
 }
 
@@ -246,6 +266,47 @@ function sepiaTone([, g]) {
   return [clamp(luma * 1.07, 0, 1), clamp(luma * 0.86, 0, 1), clamp(luma * 0.62, 0, 1)];
 }
 
+// blend.rs mirror: Photoshop-style blend modes, base=original (Cb),
+// src=graded recipe result (Cs). Per-channel formulas.
+function bmMultiply(b, s) { return b * s; }
+function bmColorBurn(b, s) {
+  if (b >= 1.0) return 1.0;
+  if (s <= 0.0) return 0.0;
+  return 1.0 - Math.min((1.0 - b) / s, 1.0);
+}
+function bmOverlay(b, s) { return b <= 0.5 ? 2.0 * b * s : 1.0 - 2.0 * (1.0 - b) * (1.0 - s); }
+function bmHardLight(b, s) { return s <= 0.5 ? 2.0 * b * s : 1.0 - 2.0 * (1.0 - b) * (1.0 - s); }
+function bmSoftLightD(x) { return x <= 0.25 ? ((16.0 * x - 12.0) * x + 4.0) * x : Math.sqrt(x); }
+function bmSoftLight(b, s) {
+  return s <= 0.5 ? b - (1.0 - 2.0 * s) * b * (1.0 - b) : b + (2.0 * s - 1.0) * (bmSoftLightD(b) - b);
+}
+function bmHardMix(b, s) { return b + s >= 1.0 ? 1.0 : 0.0; }
+function bmDifference(b, s) { return Math.abs(b - s); }
+function bmExclusion(b, s) { return b + s - 2.0 * b * s; }
+
+const BLEND_SEPARABLE = [bmMultiply, bmColorBurn, bmOverlay, bmSoftLight, bmHardLight, bmHardMix, bmDifference, bmExclusion];
+
+// blend.rs::blend_pixel dispatcher.
+function blendPixel(base, src, mode) {
+  const fn = BLEND_SEPARABLE[BLEND_MODE_INDEX[mode]];
+  return [fn(base[0], src[0]), fn(base[1], src[1]), fn(base[2], src[2])];
+}
+
+// blend.rs::apply_overlay — self-blend `graded` with itself by mode, mixed
+// in by opacity (0 = the recipe unchanged, 1 = the full self-blend). Adds on
+// top of the recipe rather than compositing against the pre-recipe photo.
+function applyOverlay(graded, u) {
+  if (!u.overlayEnabled || u.overlayOpacity <= 0.0) return graded;
+  const mode = Object.keys(BLEND_MODE_INDEX).find((k) => BLEND_MODE_INDEX[k] === u.overlayMode);
+  const blended = blendPixel(graded, graded, mode);
+  const o = clamp(u.overlayOpacity, 0, 1);
+  return [
+    graded[0] + (blended[0] - graded[0]) * o,
+    graded[1] + (blended[1] - graded[1]) * o,
+    graded[2] + (blended[2] - graded[2]) * o,
+  ];
+}
+
 export function recipeReference([r, g, b], recipe, manual = NEUTRAL_MANUAL) {
   const u = computeUniformsForRecipe(recipe, manual);
 
@@ -292,8 +353,11 @@ export function recipeReference([r, g, b], recipe, manual = NEUTRAL_MANUAL) {
   const sat = 1.0 + u.manualSaturation;
   rgb = rgb.map((c) => manualLuma + (c - manualLuma) * sat);
 
-  // 9. Color grade (luminance color-map), applied last.
+  // 9. Color grade (luminance color-map).
   rgb = colorGrade(rgb, u);
+
+  // 10. Overlay: blend-mode self-composite.
+  rgb = applyOverlay(rgb, u);
 
   return rgb.map((c) => clamp(c, 0, 1));
 }

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ColorGrade, ManualAdjustments, Recipe } from "@film-recipes/core-types";
+import type { ColorGrade, ManualAdjustments, Overlay, Recipe } from "@film-recipes/core-types";
 import type { Prediction } from "@film-recipes/adaptive";
 
 export interface DecodedImage {
@@ -16,6 +16,13 @@ export const NEUTRAL_COLOR_GRADE: ColorGrade = {
   stops: [],
 };
 
+/** Identity overlay — disabled, matching Overlay::default(). */
+export const NEUTRAL_OVERLAY: Overlay = {
+  enabled: false,
+  mode: "Multiply",
+  opacity: 0.5,
+};
+
 /** Identity manual grade — a no-op, matching ManualAdjustments::default(). */
 export const NEUTRAL_MANUAL: ManualAdjustments = {
   exposure: 0,
@@ -27,6 +34,7 @@ export const NEUTRAL_MANUAL: ManualAdjustments = {
   black_level: 0,
   white_level: 1,
   color_grade: { ...NEUTRAL_COLOR_GRADE },
+  overlay: { ...NEUTRAL_OVERLAY },
 };
 
 interface EditorState {
@@ -56,6 +64,7 @@ interface EditorState {
   setSelectedRecipeId: (id: string) => void;
   setManual: (patch: Partial<ManualAdjustments>) => void;
   setColorGrade: (patch: Partial<ColorGrade>) => void;
+  setOverlay: (patch: Partial<Overlay>) => void;
   resetManual: () => void;
   setSplitX: (splitX: number) => void;
   setRecipeThumbnails: (thumbnails: Record<string, string>) => void;
@@ -87,7 +96,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   setManual: (patch) => set((s) => ({ manual: { ...s.manual, ...patch } })),
   setColorGrade: (patch) =>
     set((s) => ({ manual: { ...s.manual, color_grade: { ...s.manual.color_grade, ...patch } } })),
-  resetManual: () => set({ manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } } }),
+  setOverlay: (patch) => set((s) => ({ manual: { ...s.manual, overlay: { ...s.manual.overlay, ...patch } } })),
+  resetManual: () =>
+    set({ manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE }, overlay: { ...NEUTRAL_OVERLAY } } }),
   setSplitX: (splitX) => set({ splitX }),
   setRecipeThumbnails: (recipeThumbnails) => set({ recipeThumbnails }),
   setLastPrediction: (lastPrediction) => set({ lastPrediction }),
@@ -96,7 +107,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({
       decoded: null,
       selectedRecipeId: "kodak-portra-400",
-      manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } },
+      manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE }, overlay: { ...NEUTRAL_OVERLAY } },
       splitX: 0.5,
       recipeThumbnails: {},
       lastPrediction: null,

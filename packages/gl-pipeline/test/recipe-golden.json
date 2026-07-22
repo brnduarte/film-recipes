@@ -15,6 +15,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -108,6 +113,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -201,6 +211,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -294,6 +309,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -387,6 +407,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -480,6 +505,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -573,6 +603,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -666,6 +701,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -759,6 +799,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -852,6 +897,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -945,6 +995,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1038,6 +1093,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1131,6 +1191,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1224,6 +1289,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1317,6 +1387,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1410,6 +1485,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1503,6 +1583,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1596,6 +1681,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1689,6 +1779,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1782,6 +1877,11 @@
         "harmony": "Complementary",
         "intensity": 0.5,
         "stops": []
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1886,6 +1986,11 @@
             "value": 0.7
           }
         ]
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -1990,6 +2095,11 @@
             "value": 0.7
           }
         ]
+      },
+      "overlay": {
+        "enabled": false,
+        "mode": "Multiply",
+        "opacity": 0.5
       }
     },
     "pixels": [
@@ -2063,6 +2173,202 @@
           0.19518235,
           0.39496043,
           0.7502574
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Provia+overlay",
+    "manual": {
+      "exposure": 0.0,
+      "white_balance": 0.0,
+      "contrast": 0.0,
+      "highlights": 0.0,
+      "shadows": 0.0,
+      "saturation": 0.0,
+      "black_level": 0.0,
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      },
+      "overlay": {
+        "enabled": true,
+        "mode": "Multiply",
+        "opacity": 0.6
+      }
+    },
+    "pixels": [
+      {
+        "input": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "expected": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "input": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "expected": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      {
+        "input": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "expected": [
+          0.35,
+          0.35,
+          0.35
+        ]
+      },
+      {
+        "input": [
+          0.9,
+          0.1,
+          0.1
+        ],
+        "expected": [
+          0.84599996,
+          0.045999993,
+          0.045999993
+        ]
+      },
+      {
+        "input": [
+          0.3,
+          0.45,
+          0.32
+        ],
+        "expected": [
+          0.174,
+          0.30149996,
+          0.18944
+        ]
+      },
+      {
+        "input": [
+          0.1,
+          0.3,
+          0.9
+        ],
+        "expected": [
+          0.045999993,
+          0.174,
+          0.84599996
+        ]
+      }
+    ]
+  },
+  {
+    "name": "kodak-portra-400+overlay",
+    "manual": {
+      "exposure": 0.0,
+      "white_balance": 0.0,
+      "contrast": 0.0,
+      "highlights": 0.0,
+      "shadows": 0.0,
+      "saturation": 0.0,
+      "black_level": 0.0,
+      "white_level": 1.0,
+      "color_grade": {
+        "enabled": false,
+        "harmony": "Complementary",
+        "intensity": 0.5,
+        "stops": []
+      },
+      "overlay": {
+        "enabled": true,
+        "mode": "SoftLight",
+        "opacity": 1.0
+      }
+    },
+    "pixels": [
+      {
+        "input": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "expected": [
+          0.004412174,
+          0.012432821,
+          0.016405877
+        ]
+      },
+      {
+        "input": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "expected": [
+          0.9632958,
+          0.9538853,
+          0.9333702
+        ]
+      },
+      {
+        "input": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "expected": [
+          0.85618967,
+          0.8513578,
+          0.74093324
+        ]
+      },
+      {
+        "input": [
+          0.9,
+          0.1,
+          0.1
+        ],
+        "expected": [
+          1.0,
+          0.3694728,
+          0.35440558
+        ]
+      },
+      {
+        "input": [
+          0.3,
+          0.45,
+          0.32
+        ],
+        "expected": [
+          0.4872056,
+          0.787491,
+          0.44181508
+        ]
+      },
+      {
+        "input": [
+          0.1,
+          0.3,
+          0.9
+        ],
+        "expected": [
+          0.33947515,
+          0.69531107,
+          1.0
         ]
       }
     ]

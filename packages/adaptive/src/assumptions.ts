@@ -25,5 +25,6 @@ export function deriveAssumptions(recipe: Recipe, recipeId: string): RecipeAssum
     // Deepened shadows or pushed highlights => the look is already contrasty.
     alreadyContrasty: recipe.tone.shadow <= -2 || recipe.tone.highlight >= 2,
     assumesLowLight: LOW_LIGHT_RECIPES.has(recipeId),
+    exposureCompensation: recipe.exposure_compensation,
   };
 }

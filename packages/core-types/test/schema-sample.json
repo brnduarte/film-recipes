@@ -48,6 +48,11 @@
           "value": 0.7
         }
       ]
+    },
+    "overlay": {
+      "enabled": false,
+      "mode": "Multiply",
+      "opacity": 0.5
     }
   },
   "created_at": "2026-07-16T00:00:00Z",

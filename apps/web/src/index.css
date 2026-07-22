@@ -75,8 +75,13 @@ input[type="range"]:disabled {
    buttons and floating windows. */
 .glass {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px) saturate(180%);
+  /* -webkit- fallback listed first, standard property last: the production
+     minifier (Lightning CSS, via @tailwindcss/vite) dedupes these two
+     identical-value declarations down to one and keeps whichever is last —
+     put the unprefixed property last so Chrome/Firefox/Edge (which need the
+     unprefixed property, not the -webkit- one) still get the blur. */
   -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.35),

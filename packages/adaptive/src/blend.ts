@@ -8,7 +8,7 @@ import type { ManualAdjustments } from "@film-recipes/core-types";
 import type { Prediction } from "./types.ts";
 
 /** Field ranges mirror apps/web AdjustmentsPanel sliders and the render engine. */
-const RANGES: Record<keyof Omit<ManualAdjustments, "color_grade">, [number, number]> = {
+const RANGES: Record<keyof Omit<ManualAdjustments, "color_grade" | "overlay">, [number, number]> = {
   exposure: [-2, 2],
   white_balance: [-1, 1],
   contrast: [-1, 1],
@@ -30,16 +30,28 @@ export const NEUTRAL_MANUAL: ManualAdjustments = {
   black_level: 0,
   white_level: 1,
   color_grade: { enabled: false, harmony: "Complementary", intensity: 0.5, stops: [] },
+  overlay: { enabled: false, mode: "Multiply", opacity: 0.5 },
 };
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+/** Overlay opacity at full (100%) strength — a self-blend Multiply is the
+ *  classic Photoshop "add punch" trick, so it's applied automatically as
+ *  part of the adaptive grade rather than requiring a manual pick. Scaled by
+ *  the same strength governor as every other predicted adjustment below, so
+ *  dialing Strength down also eases the overlay out. */
+const DEFAULT_OVERLAY_OPACITY = 0.5;
+
 /** neutral + (predicted deltas × strength/100), clamped to each field's range. */
 export function adaptManual(prediction: Prediction, strength: number): ManualAdjustments {
   const s = clamp(strength, 0, 100) / 100;
-  const out: ManualAdjustments = { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_MANUAL.color_grade } };
+  const out: ManualAdjustments = {
+    ...NEUTRAL_MANUAL,
+    color_grade: { ...NEUTRAL_MANUAL.color_grade },
+    overlay: { enabled: true, mode: "Multiply", opacity: DEFAULT_OVERLAY_OPACITY * s },
+  };
   const deltas = prediction.predicted_adjustments;
 
   (Object.keys(RANGES) as (keyof typeof RANGES)[]).forEach((field) => {

@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { ColorHarmony, ManualAdjustments } from "@film-recipes/core-types";
+import type { ColorHarmony, ManualAdjustments, OverlayBlendMode } from "@film-recipes/core-types";
 import type { Prediction } from "@film-recipes/adaptive";
 import { useEditorStore } from "../store";
 import { ColorWheel, stopsForHarmony } from "./ColorWheel";
@@ -19,6 +19,21 @@ interface SliderSpec {
   /** How to render the numeric value next to the label. */
   format: (v: number) => string;
 }
+
+/** Blend modes offered for the overlay self-blend — restricted to
+ *  `OverlayBlendMode`'s set, which excludes Lighten/Hue/Saturation/Color/
+ *  Luminosity because self-blending an identical layer with any of them is
+ *  always a no-op (see that type's doc comment). */
+const OVERLAY_MODES: { id: OverlayBlendMode; label: string }[] = [
+  { id: "Multiply", label: "Multiply" },
+  { id: "ColorBurn", label: "Color Burn" },
+  { id: "Overlay", label: "Overlay" },
+  { id: "SoftLight", label: "Soft Light" },
+  { id: "HardLight", label: "Hard Light" },
+  { id: "HardMix", label: "Hard Mix" },
+  { id: "Difference", label: "Difference" },
+  { id: "Exclusion", label: "Exclusion" },
+];
 
 const HARMONIES: { id: ColorHarmony; label: string }[] = [
   { id: "Monochromatic", label: "Monochromatic" },
@@ -93,13 +108,19 @@ export function AdjustmentsPanel({
   const manual = useEditorStore((s) => s.manual);
   const setManual = useEditorStore((s) => s.setManual);
   const setColorGrade = useEditorStore((s) => s.setColorGrade);
+  const setOverlay = useEditorStore((s) => s.setOverlay);
   const resetManual = useEditorStore((s) => s.resetManual);
   const grade = manual.color_grade;
+  const overlay = manual.overlay;
 
   const [tab, setTab] = useState<Tab>("adjust");
 
   function selectHarmony(harmony: ColorHarmony) {
     setColorGrade({ harmony, enabled: true, stops: stopsForHarmony(harmony) });
+  }
+
+  function selectOverlayMode(mode: OverlayBlendMode) {
+    setOverlay({ mode, enabled: true });
   }
 
   const [pos, setPos] = useState(() => {
@@ -205,6 +226,62 @@ export function AdjustmentsPanel({
                   style={{ "--pct": `${pct(strength, 0, 100)}%` } as React.CSSProperties}
                 />
               </label>
+
+              {/* Photoshop-style blend-mode overlay: self-blends the finished
+                  grade at a chosen mode + opacity — Photoshop's own "duplicate
+                  layer, set a blend mode, dial opacity" punch trick. Can only
+                  enhance the grade, never erase it back to the original. */}
+              <label className="flex flex-col gap-1 text-sm text-neutral-300">
+                <span>Overlay</span>
+                <select
+                  id="overlay-mode"
+                  value={overlay.enabled ? overlay.mode : ""}
+                  disabled={disabled}
+                  onChange={(event) => selectOverlayMode(event.target.value as OverlayBlendMode)}
+                  className="rounded-md border border-white/10 bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:border-white/30 disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Choose an overlay mode…
+                  </option>
+                  {OVERLAY_MODES.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {overlay.enabled && (
+                <>
+                  <label className="flex flex-col gap-1 text-sm text-neutral-300">
+                    <span className="flex justify-between">
+                      <span>Opacity</span>
+                      <span className="tabular-nums text-neutral-400">{Math.round(overlay.opacity * 100)}%</span>
+                    </span>
+                    <input
+                      id="overlay-opacity"
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={overlay.opacity}
+                      disabled={disabled}
+                      onChange={(event) => setOverlay({ opacity: Number(event.target.value) })}
+                      style={{ "--pct": `${pct(overlay.opacity, 0, 1)}%` } as React.CSSProperties}
+                    />
+                  </label>
+
+                  <button
+                    id="overlay-disable"
+                    type="button"
+                    onClick={() => setOverlay({ enabled: false })}
+                    disabled={disabled}
+                    className="self-start text-xs text-neutral-400 underline-offset-2 hover:text-neutral-100 hover:underline disabled:opacity-50"
+                  >
+                    Turn off overlay
+                  </button>
+                </>
+              )}
             </div>
           )}
 

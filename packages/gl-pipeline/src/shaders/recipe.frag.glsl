@@ -61,6 +61,16 @@ uniform float u_colorGradeIntensity;
 uniform int u_colorGradeStopCount;
 uniform vec3 u_colorGradeColors[MAX_GRADE_STOPS];
 
+// Overlay (Photoshop-style blend-mode composite), blend.rs::apply_overlay.
+// u_overlayMode indices match BLEND_MODE_INDEX in recipe-uniforms.ts:
+// 0 Multiply, 1 ColorBurn, 2 Overlay, 3 SoftLight, 4 HardLight, 5 HardMix,
+// 6 Difference, 7 Exclusion. (Lighten/Hue/Saturation/Color/Luminosity are
+// deliberately not offered — self-blending an identical layer with any of
+// them is mathematically always a no-op, see blend.rs's module doc.)
+uniform bool u_overlayEnabled;
+uniform int u_overlayMode;
+uniform float u_overlayOpacity;
+
 // Before/after split: pixels with v_uv.x < u_splitX render the untouched
 // original (the "before" side); pixels to the right render the full recipe.
 // u_splitX = 0.0 shows the recipe everywhere (used for thumbnails/exports);
@@ -196,6 +206,61 @@ vec3 sepiaTone(vec3 rgb) {
   return clamp(vec3(luma * 1.07, luma * 0.86, luma * 0.62), 0.0, 1.0);
 }
 
+// --- blend.rs mirror: Photoshop-style blend modes, base=original (Cb),
+// src=graded recipe result (Cs). Per-channel formulas. ---
+float bmMultiply(float b, float s) { return b * s; }
+
+float bmColorBurn(float b, float s) {
+  if (b >= 1.0) return 1.0;
+  if (s <= 0.0) return 0.0;
+  return 1.0 - min((1.0 - b) / s, 1.0);
+}
+
+float bmOverlay(float b, float s) {
+  return b <= 0.5 ? 2.0 * b * s : 1.0 - 2.0 * (1.0 - b) * (1.0 - s);
+}
+
+float bmHardLight(float b, float s) {
+  return s <= 0.5 ? 2.0 * b * s : 1.0 - 2.0 * (1.0 - b) * (1.0 - s);
+}
+
+float bmSoftLightD(float x) {
+  return x <= 0.25 ? ((16.0 * x - 12.0) * x + 4.0) * x : sqrt(x);
+}
+
+float bmSoftLight(float b, float s) {
+  return s <= 0.5 ? b - (1.0 - 2.0 * s) * b * (1.0 - b) : b + (2.0 * s - 1.0) * (bmSoftLightD(b) - b);
+}
+
+float bmHardMix(float b, float s) { return (b + s) >= 1.0 ? 1.0 : 0.0; }
+
+float bmDifference(float b, float s) { return abs(b - s); }
+
+float bmExclusion(float b, float s) { return b + s - 2.0 * b * s; }
+
+// blend.rs::blend_pixel dispatcher — mode indices documented at u_overlayMode.
+vec3 applyBlendMode(vec3 base, vec3 src, int mode) {
+  if (mode == 0) return vec3(bmMultiply(base.r, src.r), bmMultiply(base.g, src.g), bmMultiply(base.b, src.b));
+  if (mode == 1) return vec3(bmColorBurn(base.r, src.r), bmColorBurn(base.g, src.g), bmColorBurn(base.b, src.b));
+  if (mode == 2) return vec3(bmOverlay(base.r, src.r), bmOverlay(base.g, src.g), bmOverlay(base.b, src.b));
+  if (mode == 3) return vec3(bmSoftLight(base.r, src.r), bmSoftLight(base.g, src.g), bmSoftLight(base.b, src.b));
+  if (mode == 4) return vec3(bmHardLight(base.r, src.r), bmHardLight(base.g, src.g), bmHardLight(base.b, src.b));
+  if (mode == 5) return vec3(bmHardMix(base.r, src.r), bmHardMix(base.g, src.g), bmHardMix(base.b, src.b));
+  if (mode == 6) return vec3(bmDifference(base.r, src.r), bmDifference(base.g, src.g), bmDifference(base.b, src.b));
+  return vec3(bmExclusion(base.r, src.r), bmExclusion(base.g, src.g), bmExclusion(base.b, src.b)); // mode == 7
+}
+
+// blend.rs::apply_overlay — self-blend `graded` with itself by mode, mixed
+// in by opacity (0 = the recipe unchanged, 1 = the full self-blend). Adds on
+// top of the recipe rather than compositing against the pre-recipe photo, so
+// it can only enhance the grade, never erase it.
+vec3 applyOverlay(vec3 graded) {
+  if (!u_overlayEnabled || u_overlayOpacity <= 0.0) return graded;
+  vec3 blended = applyBlendMode(graded, graded, u_overlayMode);
+  float o = clamp(u_overlayOpacity, 0.0, 1.0);
+  return graded + (blended - graded) * o;
+}
+
 void main() {
   vec3 rgb = texture(u_image, v_uv).rgb;
 
@@ -244,8 +309,11 @@ void main() {
   float manualLuma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
   rgb = manualLuma + (rgb - manualLuma) * (1.0 + u_manualSaturation);
 
-  // 9. Color grade (luminance color-map), applied last.
+  // 9. Color grade (luminance color-map).
   rgb = colorGrade(rgb);
+
+  // 10. Overlay: blend-mode self-composite, applied last.
+  rgb = applyOverlay(rgb);
 
   outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

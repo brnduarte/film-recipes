@@ -6,6 +6,7 @@
 //!   cargo run -p recipe-engine --example dump_recipe_golden > \
 //!     packages/gl-pipeline/test/recipe-golden.json
 
+use recipe_engine::blend::{BlendMode, Overlay};
 use recipe_engine::pipeline::apply_recipe_to_pixel;
 use recipe_engine::recipe::{ColorGrade, ColorGradeStop, ColorHarmony, ManualAdjustments, Recipe};
 use serde::Serialize;
@@ -75,6 +76,18 @@ fn main() {
         ..Default::default()
     };
 
+    // Two overlay blend modes at different opacities, so the parity harness
+    // covers pipeline.rs's overlay self-blend compositing stage
+    // (blend::apply_overlay) beyond just the default mode.
+    let manual_overlay_multiply = ManualAdjustments {
+        overlay: Overlay { enabled: true, mode: BlendMode::Multiply, opacity: 0.6 },
+        ..Default::default()
+    };
+    let manual_overlay_soft_light = ManualAdjustments {
+        overlay: Overlay { enabled: true, mode: BlendMode::SoftLight, opacity: 1.0 },
+        ..Default::default()
+    };
+
     let goldens = vec![
         golden_for("Provia", &Recipe::provia_baseline()),
         golden_for("Velvia", &recipe_engine::velvia::velvia_recipe()),
@@ -98,6 +111,8 @@ fn main() {
         golden_with("cinestill-800t+manual", &recipe_engine::named_recipes::cinestill_800t_recipe(), manual_grade),
         golden_with("Provia+grade", &Recipe::provia_baseline(), manual_color_grade.clone()),
         golden_with("ClassicChrome+grade", &recipe_engine::classic_chrome::classic_chrome_recipe(), manual_color_grade),
+        golden_with("Provia+overlay", &Recipe::provia_baseline(), manual_overlay_multiply),
+        golden_with("kodak-portra-400+overlay", &recipe_engine::named_recipes::kodak_portra_400_recipe(), manual_overlay_soft_light),
     ];
 
     println!("{}", serde_json::to_string_pretty(&goldens).unwrap());

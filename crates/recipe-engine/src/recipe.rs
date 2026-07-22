@@ -244,6 +244,8 @@ pub struct ManualAdjustments {
     pub white_level: f32,   // 0..+1, levels white point (default 1.0)
     #[serde(default)]
     pub color_grade: ColorGrade, // luminance color-map tint (default: disabled)
+    #[serde(default)]
+    pub overlay: crate::blend::Overlay, // Photoshop-style blend-mode composite (default: disabled)
 }
 
 impl Default for ManualAdjustments {
@@ -258,6 +260,7 @@ impl Default for ManualAdjustments {
             black_level: 0.0,
             white_level: 1.0,
             color_grade: ColorGrade::default(),
+            overlay: crate::blend::Overlay::default(),
         }
     }
 }

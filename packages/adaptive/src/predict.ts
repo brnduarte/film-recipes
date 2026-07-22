@@ -56,16 +56,39 @@ function computeDeltas(a: ImageAnalysis, asm: RecipeAssumptions): Partial<Manual
   const skinGuard = 1 - Math.min(0.6, a.skinFraction * 1.5);
 
   // ── Exposure ──────────────────────────────────────────────────────────
-  // Move the median toward the scene's target, damped, and never push up into
-  // an already-blown frame.
-  let exposure = evToward(targetLuma(a.scene), a.p50) * 0.6;
-  if (a.highlightClip > 0.03) exposure = Math.min(exposure, 0.15);
-  exposure = clamp(exposure, -1.2, 1.2);
+  // The recipe already applies its own `exposure_compensation` before this
+  // delta ever reaches the render pipeline — recipe + manual exposure combine
+  // additively into ONE multiplicative gain, applied before any tone curve
+  // (see pipeline.rs). So "how much brighter should this get" has to reason
+  // about the TOTAL stops the photo will actually receive, not just our own
+  // contribution — otherwise a recipe that already pushes +1 EV on a backlit
+  // scene gets a second push stacked blindly on top, and the near-white point
+  // sails past clipping before any highlight recovery gets a say.
+  const idealTotalEv = evToward(targetLuma(a.scene), a.p50) * 0.6;
+
+  // Cap the TOTAL exposure (recipe + delta) so the near-white point (p95),
+  // once that gain actually lands, stays under a safe ceiling. This mirrors
+  // the real pipeline math instead of a flat "back off a bit" heuristic that
+  // has no idea how much headroom this particular photo has left.
+  const HIGHLIGHT_CEILING = 0.92;
+  const maxTotalEv = Math.log2(HIGHLIGHT_CEILING / Math.max(a.p95, 0.04));
+  const totalEv = clamp(Math.min(idealTotalEv, maxTotalEv), -1.2, 1.2);
+  const exposure = clamp(totalEv - asm.exposureCompensation, -1.2, 1.2);
+
+  // Brightening we deliberately withheld from the exposure channel to protect
+  // highlights — redirected into shadow lift below (which only touches the
+  // bottom half of the tonal range) instead of just being lost.
+  const evShortfall = Math.max(0, idealTotalEv - maxTotalEv);
 
   // ── Highlights / shadows ─────────────────────────────────────────────
-  // Recover blown highlights; lift only genuinely crushed shadows.
-  let highlights = -clamp(a.highlightClip * 6 + Math.max(0, a.p95 - 0.97) * 4, 0, 0.7);
+  // Recover highlights that are already clipped in the source AND whatever
+  // the capped total exposure gain would still push toward the ceiling.
+  // Lift only genuinely crushed shadows, plus whatever brightening the
+  // highlight cap above couldn't safely hand to exposure.
+  const projectedP95 = a.p95 * Math.pow(2, totalEv);
+  let highlights = -clamp(a.highlightClip * 6 + Math.max(0, projectedP95 - 0.95) * 4, 0, 0.7);
   let shadows = clamp((0.06 - a.p5) * 4, 0, 0.5);
+  shadows = Math.min(0.6, shadows + evShortfall * 0.5);
   if (a.scene === "high_key") highlights = Math.min(highlights, -0.15); // protect the bright key
   if (a.scene === "low_light") shadows = Math.min(0.6, shadows + 0.1); // open the mood a touch
 

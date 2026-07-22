@@ -84,17 +84,19 @@ pub fn apply_recipe_to_pixel(mut rgb: [f32; 3], recipe: &Recipe, manual: &Manual
     }
 
     // 9. Manual global adjustments (user sliders), graded on top of the
-    // finished recipe look — see `apply_manual_grade`.
+    // finished recipe look, plus the overlay blend-mode composite — see
+    // `apply_manual_grade`.
     rgb = apply_manual_grade(rgb, manual);
 
     [rgb[0].clamp(0.0, 1.0), rgb[1].clamp(0.0, 1.0), rgb[2].clamp(0.0, 1.0)]
 }
 
 /// User-facing global grade applied after the recipe (white balance,
-/// contrast, highlights, shadows, levels, saturation). Manual exposure is
-/// folded into the recipe's exposure stage earlier, so it's not repeated
-/// here. Stage order is authoritative and must match the GLSL mirror in
-/// recipe.frag.glsl exactly (parity harness enforces it).
+/// contrast, highlights, shadows, levels, saturation), finishing with the
+/// overlay blend-mode self-composite. Manual exposure is folded into the
+/// recipe's exposure stage earlier, so it's not repeated here. Stage order
+/// is authoritative and must match the GLSL mirror in recipe.frag.glsl
+/// exactly (parity harness enforces it).
 fn apply_manual_grade(mut rgb: [f32; 3], m: &ManualAdjustments) -> [f32; 3] {
     // White balance: warm (+) boosts red and cuts blue; cool (-) the reverse.
     let wb = m.white_balance;
@@ -129,9 +131,16 @@ fn apply_manual_grade(mut rgb: [f32; 3], m: &ManualAdjustments) -> [f32; 3] {
         luma + (rgb[2] - luma) * sat,
     ];
 
-    // Color grade: luminance color-map tint (last, so it colors the finished
-    // tonal result). See `apply_color_grade`.
-    apply_color_grade(rgb, &m.color_grade)
+    // Color grade: luminance color-map tint, colors the finished tonal
+    // result. See `apply_color_grade`.
+    rgb = apply_color_grade(rgb, &m.color_grade);
+
+    // Overlay: a Photoshop "self-blend" — the finished result composited with
+    // *itself* by the chosen blend mode (e.g. self-blend Multiply is the
+    // classic contrast/punch trick), mixed back in by opacity. Adds on top of
+    // the recipe rather than compositing against the pre-recipe original, so
+    // it can only ever enhance the grade, never erase it. See `blend::apply_overlay`.
+    crate::blend::apply_overlay(rgb, rgb, &m.overlay)
 }
 
 /// Luminance color-map grade. The grade's stops are ordered shadows→highlights

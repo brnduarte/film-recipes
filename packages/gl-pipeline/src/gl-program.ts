@@ -65,4 +65,9 @@ export function setRecipeUniforms(
   gl.uniform1f(gl.getUniformLocation(program, "u_colorGradeIntensity"), u.colorGradeIntensity);
   gl.uniform1i(gl.getUniformLocation(program, "u_colorGradeStopCount"), u.colorGradeStopCount);
   gl.uniform3fv(gl.getUniformLocation(program, "u_colorGradeColors"), u.colorGradeColors);
+
+  // Overlay (Photoshop-style blend-mode composite).
+  gl.uniform1i(gl.getUniformLocation(program, "u_overlayEnabled"), u.overlayEnabled ? 1 : 0);
+  gl.uniform1i(gl.getUniformLocation(program, "u_overlayMode"), u.overlayMode);
+  gl.uniform1f(gl.getUniformLocation(program, "u_overlayOpacity"), u.overlayOpacity);
 }

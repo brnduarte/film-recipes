@@ -94,6 +94,34 @@ export interface ColorGrade {
   stops: ColorGradeStop[];
 }
 
+/** Blend modes offered for `Overlay.mode` — a curated subset of Photoshop's
+ *  full ~27-mode set, restricted to modes that actually do something when
+ *  self-blended (see `Overlay`'s doc comment): Lighten/Hue/Saturation/Color/
+ *  Luminosity are deliberately excluded because self-blending an identical
+ *  layer with any of them is mathematically always a no-op. */
+export type OverlayBlendMode =
+  | "Multiply"
+  | "ColorBurn"
+  | "Overlay"
+  | "SoftLight"
+  | "HardLight"
+  | "HardMix"
+  | "Difference"
+  | "Exclusion";
+
+/** Photoshop-style blend-mode composite: the finished recipe result is
+ *  self-blended with `mode`, then mixed back in by `opacity` — the classic
+ *  Photoshop "duplicate layer, set to Multiply/Soft Light/etc., dial opacity"
+ *  punch trick (opacity 0 is the recipe unchanged, opacity 1 is the full
+ *  self-blend). Adds on top of the recipe rather than compositing against
+ *  the pre-recipe photo, so it can only enhance the grade, never erase it.
+ *  Disabled by default so `ManualAdjustments::default()` stays a no-op. */
+export interface Overlay {
+  enabled: boolean;
+  mode: OverlayBlendMode;
+  opacity: number; // 0..1
+}
+
 export interface ManualAdjustments {
   exposure: number; // stops, combines additively with recipe exposure comp
   white_balance: number; // -1..+1, cool..warm temperature shift
@@ -104,6 +132,7 @@ export interface ManualAdjustments {
   black_level: number; // 0..+1, levels black point (default 0.0)
   white_level: number; // 0..+1, levels white point (default 1.0)
   color_grade: ColorGrade; // luminance color-map tint (default: disabled)
+  overlay: Overlay; // Photoshop-style blend-mode composite (default: disabled)
 }
 
 export interface Crop {

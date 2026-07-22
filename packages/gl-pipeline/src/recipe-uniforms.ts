@@ -19,10 +19,31 @@
 // TS/bundler dependency, matching the existing classic-chrome-reference.mjs
 // precedent.
 
-import type { ColorChromeStrength, ColorGrade, DynamicRange, FilmSimulation, ManualAdjustments, Recipe, ToneSetting, WhiteBalance } from "@film-recipes/core-types";
+import type { ColorChromeStrength, ColorGrade, DynamicRange, FilmSimulation, ManualAdjustments, Overlay, OverlayBlendMode, Recipe, ToneSetting, WhiteBalance } from "@film-recipes/core-types";
 
 // Must match MAX_GRADE_STOPS in shaders/recipe.frag.glsl.
 export const MAX_GRADE_STOPS = 6;
+
+// Must match the mode indices documented at u_overlayMode in
+// shaders/recipe.frag.glsl (and blend.rs's BlendMode declaration order,
+// though that's not load-bearing — only this map's numbers are).
+export const BLEND_MODE_INDEX: Record<OverlayBlendMode, number> = {
+  Multiply: 0,
+  ColorBurn: 1,
+  Overlay: 2,
+  SoftLight: 3,
+  HardLight: 4,
+  HardMix: 5,
+  Difference: 6,
+  Exclusion: 7,
+};
+
+/** Identity overlay — disabled, matching `Overlay::default()`. */
+export const NEUTRAL_OVERLAY: Overlay = {
+  enabled: false,
+  mode: "Multiply",
+  opacity: 0.5,
+};
 
 // white_balance.rs::REFERENCE_KELVIN
 const REFERENCE_KELVIN = 5500;
@@ -88,6 +109,10 @@ export interface RecipeUniforms {
   colorGradeIntensity: number;
   colorGradeStopCount: number;
   colorGradeColors: Float32Array;
+  // Overlay (Photoshop-style blend-mode composite), pipeline.rs::blend::apply_overlay.
+  overlayEnabled: boolean;
+  overlayMode: number;
+  overlayOpacity: number;
 }
 
 /** Identity color grade — disabled, matching `ColorGrade::default()`. */
@@ -109,6 +134,7 @@ export const NEUTRAL_MANUAL: ManualAdjustments = {
   black_level: 0,
   white_level: 1,
   color_grade: NEUTRAL_COLOR_GRADE,
+  overlay: NEUTRAL_OVERLAY,
 };
 
 // pipeline.rs::grade_hsv_to_rgb — standard HSV sextant conversion (hue in
@@ -180,6 +206,7 @@ export function computeUniformsForRecipe(recipe: Recipe, manual: ManualAdjustmen
   const { shadowLift, highlightPull } = dynamicRangeParams(recipe.dynamic_range, recipe.tone);
   const grade = manual.color_grade ?? NEUTRAL_COLOR_GRADE;
   const stopCount = Math.min(grade.stops.length, MAX_GRADE_STOPS);
+  const overlay = manual.overlay ?? NEUTRAL_OVERLAY;
 
   return {
     wbGain: wbGainForRecipe(recipe.white_balance),
@@ -202,5 +229,8 @@ export function computeUniformsForRecipe(recipe: Recipe, manual: ManualAdjustmen
     colorGradeIntensity: grade.intensity,
     colorGradeStopCount: stopCount,
     colorGradeColors: gradeColorsArray(grade),
+    overlayEnabled: overlay.enabled && overlay.opacity > 0,
+    overlayMode: BLEND_MODE_INDEX[overlay.mode],
+    overlayOpacity: overlay.opacity,
   };
 }

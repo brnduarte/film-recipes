@@ -113,6 +113,19 @@ function recipe(over = {}) {
   check("skin damps WB", Math.abs(withSkin.predicted_adjustments.white_balance) < Math.abs(noSkin.predicted_adjustments.white_balance));
 }
 
+// ── Backlit/high-DR scene + a recipe that already pushes exposure: must not
+// stack a second brightening push on top and blow the highlights ──────────
+{
+  // Dark room, bright window: low median, but the window is already near the
+  // near-white point — classic backlit interior.
+  const backlit = analysis({ meanLuma: 0.28, p50: 0.22, p5: 0.03, p95: 0.9, highlightClip: 0.01 });
+  const hotRecipe = recipe({ exposure_compensation: 1.0 });
+  const p = predict(backlit, hotRecipe, "hot-recipe");
+  const totalEv = (p.predicted_adjustments.exposure ?? 0) + hotRecipe.exposure_compensation;
+  check("total exposure stays under highlight-safe ceiling", totalEv < 1.0);
+  check("does not blindly add on top of the recipe's own push", (p.predicted_adjustments.exposure ?? 0) < 1.0);
+}
+
 // ── Blend: strength 0 == neutral, and scaling is monotonic ─────────────────
 {
   const p = predict(analysis({ meanLuma: 0.2, p50: 0.2, p5: 0.02, scene: "low_light", exposureBias: "underexposed" }), recipe(), "kodak-portra-400");
@@ -123,6 +136,21 @@ function recipe(over = {}) {
   const full = adaptManual(p, 100);
   check("blend scales up", full.exposure > half.exposure && half.exposure > 0);
   check("blend within range", full.exposure <= 2 && full.exposure >= -2);
+}
+
+// ── Overlay: Multiply applies automatically, scaled by strength ───────────
+{
+  const p = predict(analysis(), recipe(), "kodak-portra-400");
+  const full = adaptManual(p, 100);
+  check("overlay auto-enabled at full strength", full.overlay.enabled === true);
+  check("overlay defaults to Multiply", full.overlay.mode === "Multiply");
+  check("overlay opacity positive at full strength", full.overlay.opacity > 0);
+
+  const half = adaptManual(p, 50);
+  check("overlay opacity scales down with strength", half.overlay.opacity < full.overlay.opacity);
+
+  const zero = adaptManual(p, 0);
+  check("overlay opacity is zero at zero strength", zero.overlay.opacity === 0);
 }
 
 console.log(`\nadaptive/predict: ${failures === 0 ? "all checks passed" : failures + " FAILED"}`);

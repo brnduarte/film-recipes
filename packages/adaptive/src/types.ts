@@ -66,4 +66,11 @@ export interface RecipeAssumptions {
   alreadySaturated: boolean; // Velvia/Kodachrome — avoid pushing saturation further
   alreadyContrasty: boolean; // damp added contrast
   assumesLowLight: boolean; // tungsten/neon night films — preserve the ambient cast
+  /** Recipe's own exposure_compensation (stops). Combines additively with our
+   *  predicted exposure delta in the render pipeline (recipe + manual → one
+   *  gain, applied before any highlight rolloff) — so the predictor must
+   *  reason about the TOTAL stops the photo will receive, not just its own
+   *  contribution, or it stacks blindly on top of whatever the recipe already
+   *  pushes. */
+  exposureCompensation: number;
 }

@@ -7,6 +7,7 @@
 
 pub mod acros;
 pub mod astia;
+pub mod blend;
 pub mod classic_chrome;
 pub mod classic_neg;
 pub mod color_chrome;
