@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@film-recipes/adaptive": "workspace:*",
     "@film-recipes/core-types": "workspace:*",
     "@film-recipes/gl-pipeline": "workspace:*",
     "@film-recipes/processing-web": "workspace:*",

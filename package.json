@@ -6,6 +6,7 @@
   "scripts": {
     "test:e2e": "playwright test",
     "test:parity": "node packages/gl-pipeline/test/parity.mjs && node packages/core-types/test/schema-parity.mjs",
+    "test:adaptive": "node packages/adaptive/test/analyze.test.mjs && node packages/adaptive/test/predict.test.mjs",
     "lint": "eslint ."
   },
   "devDependencies": {

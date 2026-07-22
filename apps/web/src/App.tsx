@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlPreview, RecipeThumbnailRenderer } from "@film-recipes/gl-pipeline";
 import { decode, exportJpeg, getNamedRecipes } from "@film-recipes/processing-web";
+import { adaptRecipe, adaptManual } from "@film-recipes/adaptive";
 import { NAMED_RECIPES } from "@film-recipes/recipes-catalog";
 import { clearAllData } from "@film-recipes/storage";
-import type { Recipe } from "@film-recipes/core-types";
+import type { ManualAdjustments, Recipe } from "@film-recipes/core-types";
 import { useEditorStore, NEUTRAL_MANUAL } from "./store";
 import { useAuthStore } from "./auth";
 import { useIsMobile, isMobileViewport } from "./hooks/useIsMobile";
@@ -18,6 +19,33 @@ import { RecipeCarousel } from "./components/mobile/RecipeCarousel";
 
 const EXPORT_JPEG_QUALITY = 92;
 
+// Numeric manual fields the auto-adapt tween interpolates. color_grade is set at
+// the end of the tween (it isn't a scalar we can lerp frame-by-frame).
+const ANIMATED_FIELDS = [
+  "exposure",
+  "white_balance",
+  "contrast",
+  "highlights",
+  "shadows",
+  "saturation",
+  "black_level",
+  "white_level",
+] as const;
+
+const ADAPT_ANIM_MS = 550;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+// easeInOutQuad — gentle acceleration in, gentle deceleration out.
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<GlPreview | null>(null);
@@ -27,6 +55,12 @@ export function App() {
   const [isClearing, setIsClearing] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [canvasSize, setCanvasSize] = useState({ w: 960, h: 640 });
+  // Preview cross-fade: a brief opacity dip → rise whenever a new recipe is
+  // applied, so the newly graded look eases in rather than snapping.
+  const [previewOpacity, setPreviewOpacity] = useState(1);
+  const [fadeInstant, setFadeInstant] = useState(false);
+  // Handle of the in-flight slider tween, so a new adaptation cancels the old.
+  const adaptAnimRef = useRef<number | null>(null);
   // Adjustments start hidden on mobile (revealed via the top-bar toggle) and
   // docked-open on desktop.
   const [adjustmentsOpen, setAdjustmentsOpen] = useState(() => !isMobileViewport());
@@ -43,8 +77,13 @@ export function App() {
   const setDecoded = useEditorStore((s) => s.setDecoded);
   const setSelectedRecipeId = useEditorStore((s) => s.setSelectedRecipeId);
   const setSplitX = useEditorStore((s) => s.setSplitX);
+  const setManual = useEditorStore((s) => s.setManual);
   const resetManual = useEditorStore((s) => s.resetManual);
   const setRecipeThumbnails = useEditorStore((s) => s.setRecipeThumbnails);
+  const lastPrediction = useEditorStore((s) => s.lastPrediction);
+  const adaptStrength = useEditorStore((s) => s.adaptStrength);
+  const setLastPrediction = useEditorStore((s) => s.setLastPrediction);
+  const setAdaptStrength = useEditorStore((s) => s.setAdaptStrength);
   const signOut = useAuthStore((s) => s.signOut);
 
   const isMobile = useIsMobile();
@@ -95,6 +134,75 @@ export function App() {
     previewRef.current.draw(splitX, selectedRecipe, manual);
   }, [decoded, selectedRecipe, manual, splitX]);
 
+  // Subtle "apply" fade: drop the preview opacity instantly (transition off),
+  // then ease it back to full on the next frame so the new grade fades in.
+  const pulsePreview = useCallback(() => {
+    if (prefersReducedMotion()) return;
+    setFadeInstant(true);
+    setPreviewOpacity(0.4);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setFadeInstant(false);
+        setPreviewOpacity(1);
+      });
+    });
+  }, []);
+
+  // Tween the manual sliders from their current values to `target` so the
+  // handles glide and the preview eases into the adapted grade.
+  const animateManualTo = useCallback(
+    (target: ManualAdjustments) => {
+      if (adaptAnimRef.current !== null) cancelAnimationFrame(adaptAnimRef.current);
+      if (prefersReducedMotion()) {
+        setManual({ ...target });
+        adaptAnimRef.current = null;
+        return;
+      }
+      const from = useEditorStore.getState().manual;
+      const start = performance.now();
+      const step = (now: number) => {
+        const k = easeInOut(Math.min(1, (now - start) / ADAPT_ANIM_MS));
+        const patch: Partial<ManualAdjustments> = {};
+        for (const field of ANIMATED_FIELDS) {
+          patch[field] = from[field] + (target[field] - from[field]) * k;
+        }
+        setManual(patch);
+        if (k < 1) {
+          adaptAnimRef.current = requestAnimationFrame(step);
+        } else {
+          setManual({ ...target });
+          adaptAnimRef.current = null;
+        }
+      };
+      adaptAnimRef.current = requestAnimationFrame(step);
+    },
+    [setManual],
+  );
+
+  // Cancel any in-flight tween on unmount.
+  useEffect(() => () => {
+    if (adaptAnimRef.current !== null) cancelAnimationFrame(adaptAnimRef.current);
+  }, []);
+
+  // On-device "AI", applied automatically: whenever a new photo is loaded or the
+  // recipe changes, analyze the photo, calibrate the selected recipe to it, and
+  // ease the predicted grade onto the sliders. Fully local — nothing about the
+  // image leaves the device. Manual slider tweaks do NOT retrigger this (it does
+  // not depend on `manual`), so hand-edits are preserved until the next
+  // photo/recipe change.
+  useEffect(() => {
+    if (!decoded || !selectedRecipe) return;
+    const { prediction, manual: adapted } = adaptRecipe(decoded, selectedRecipe, selectedRecipeId);
+    setLastPrediction(prediction);
+    setAdaptStrength(prediction.strength);
+    pulsePreview();
+    animateManualTo(adapted);
+    setStatus(
+      `Adapted for ${prediction.analysis_context.scene.replace("_", " ")} · ${prediction.analysis_context.exposure_bias_detected.replace(/_/g, " ")}.`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decoded, selectedRecipeId, recipesById]);
+
   async function handleFileSelected(file: File) {
     if (!previewRef.current) return;
     setIsDecoding(true);
@@ -105,8 +213,15 @@ export function App() {
       previewRef.current.uploadImage(image.rgba, image.width, image.height);
       setCanvasSize({ w: image.width, h: image.height });
       setZoom(1);
+      // A fresh photo always starts from the top-of-list recipe, not whatever
+      // was last selected in the session. The auto-adapt effect then calibrates
+      // it to this photo.
+      setSelectedRecipeId(NAMED_RECIPES[0].id);
       setDecoded(image);
       setRecipeThumbnails({});
+      // A fresh photo invalidates any prior adaptive prediction.
+      setLastPrediction(null);
+      setAdaptStrength(100);
       setStatus(`Decoded ${image.width}x${image.height}. Pick a recipe and fine-tune with the sliders.`);
       // Pre-render each recipe on a tiny proxy of this photo so the list shows
       // the actual expected result per look. Runs after the main image is up.
@@ -164,6 +279,18 @@ export function App() {
     }
   }
 
+  // Re-scale the cached prediction's deltas as the strength slider moves — no
+  // re-analysis, just a cheap re-blend. Cancels any in-flight adapt tween so a
+  // drag takes over immediately.
+  function handleStrengthChange(strength: number) {
+    if (adaptAnimRef.current !== null) {
+      cancelAnimationFrame(adaptAnimRef.current);
+      adaptAnimRef.current = null;
+    }
+    setAdaptStrength(strength);
+    if (lastPrediction) setManual(adaptManual(lastPrediction, strength));
+  }
+
   // Wipes every saved preset from IndexedDB. Irreversible, so it confirms with
   // the user first, then unloads the current image and resets the edit state
   // so the user returns to the empty import prompt.
@@ -178,6 +305,8 @@ export function App() {
       await clearAllData();
       setDecoded(null);
       resetManual();
+      setLastPrediction(null);
+      setAdaptStrength(100);
       setSplitX(0.5);
       setRecipeThumbnails({});
       setCanvasSize({ w: 960, h: 640 });
@@ -224,16 +353,17 @@ export function App() {
           ref={canvasRef}
           width={canvasSize.w}
           height={canvasSize.h}
-          style={
-            isMobile
+          style={{
+            ...(isMobile
               ? {
                   transform: `translate3d(${gestures.transform.x}px, ${gestures.transform.y}px, 0) scale(${gestures.transform.scale})`,
                 }
-              : { transform: `scale(${zoom})` }
-          }
-          className={`max-h-full max-w-full origin-center transition-opacity duration-500 ease-out ${
-            isMobile ? "" : "rounded-lg"
-          } ${hasImage && !isDecoding ? "opacity-100" : "opacity-0"}`}
+              : { transform: `scale(${zoom})` }),
+            opacity: hasImage && !isDecoding ? previewOpacity : 0,
+          }}
+          className={`max-h-full max-w-full origin-center ${
+            fadeInstant ? "" : "transition-opacity duration-500 ease-out"
+          } ${isMobile ? "" : "rounded-lg"}`}
         />
       </div>
 
@@ -369,7 +499,15 @@ export function App() {
       )}
 
       {/* Floating, draggable adjustments window — centered on mobile. */}
-      {hasImage && adjustmentsOpen && <AdjustmentsPanel disabled={false} initialCenter={isMobile} />}
+      {hasImage && adjustmentsOpen && (
+        <AdjustmentsPanel
+          disabled={false}
+          initialCenter={isMobile}
+          strength={adaptStrength}
+          onStrengthChange={handleStrengthChange}
+          prediction={lastPrediction}
+        />
+      )}
     </main>
   );
 }

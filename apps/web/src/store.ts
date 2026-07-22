@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ColorGrade, ManualAdjustments, Recipe } from "@film-recipes/core-types";
+import type { Prediction } from "@film-recipes/adaptive";
 
 export interface DecodedImage {
   width: number;
@@ -43,6 +44,11 @@ interface EditorState {
   /** Per-recipe preview thumbnails (PNG data URLs), keyed by catalog id.
    *  Regenerated from the current photo each time one is decoded. */
   recipeThumbnails: Record<string, string>;
+  /** Last on-device adaptive prediction (analysis + deltas), so the strength
+   *  slider can re-blend without re-analyzing. Session-only, never persisted. */
+  lastPrediction: Prediction | null;
+  /** Applied intensity (0–100) of the adaptive prediction's deltas. */
+  adaptStrength: number;
 
   setStatus: (status: string) => void;
   setNamedRecipes: (recipes: Recipe[]) => void;
@@ -53,6 +59,8 @@ interface EditorState {
   resetManual: () => void;
   setSplitX: (splitX: number) => void;
   setRecipeThumbnails: (thumbnails: Record<string, string>) => void;
+  setLastPrediction: (prediction: Prediction | null) => void;
+  setAdaptStrength: (strength: number) => void;
   /** Reset all per-session editor state to defaults. Called when a new session
    *  begins (sign-in) so one user never sees the previous user's photo,
    *  recipe, or adjustments — the store is a module singleton that outlives
@@ -69,6 +77,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   manual: { ...NEUTRAL_MANUAL },
   splitX: 0.5,
   recipeThumbnails: {},
+  lastPrediction: null,
+  adaptStrength: 100,
 
   setStatus: (status) => set({ status }),
   setNamedRecipes: (namedRecipes) => set({ namedRecipes }),
@@ -80,6 +90,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   resetManual: () => set({ manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } } }),
   setSplitX: (splitX) => set({ splitX }),
   setRecipeThumbnails: (recipeThumbnails) => set({ recipeThumbnails }),
+  setLastPrediction: (lastPrediction) => set({ lastPrediction }),
+  setAdaptStrength: (adaptStrength) => set({ adaptStrength }),
   resetSession: () =>
     set({
       decoded: null,
@@ -87,5 +99,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       manual: { ...NEUTRAL_MANUAL, color_grade: { ...NEUTRAL_COLOR_GRADE } },
       splitX: 0.5,
       recipeThumbnails: {},
+      lastPrediction: null,
+      adaptStrength: 100,
     }),
 }));

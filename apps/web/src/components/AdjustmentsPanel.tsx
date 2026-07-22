@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { ColorHarmony, ManualAdjustments } from "@film-recipes/core-types";
+import type { Prediction } from "@film-recipes/adaptive";
 import { useEditorStore } from "../store";
 import { ColorWheel, stopsForHarmony } from "./ColorWheel";
 
@@ -43,6 +44,15 @@ function signed(v: number): string {
   return v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2);
 }
 
+/** Human-readable one-liner of what the adaptive analysis saw, for transparency. */
+function formatContext(prediction: Prediction): string {
+  const c = prediction.analysis_context;
+  const humanize = (s: string) => s.replace(/_/g, " ");
+  const parts = [humanize(c.scene), humanize(c.exposure_bias_detected)];
+  if (c.skin_detected) parts.push("skin protected");
+  return parts.join(" · ");
+}
+
 /** Value's position within [min, max] as a 0–100 percentage, for the slider's
  *  filled-track width (`--pct`). */
 function pct(value: number, min: number, max: number): number {
@@ -64,11 +74,22 @@ interface AdjustmentsPanelProps {
   disabled?: boolean;
   /** Mobile: open centered on screen instead of docked near the top-right. */
   initialCenter?: boolean;
+  /** Applied intensity (0–100) of the current adaptive prediction. */
+  strength: number;
+  onStrengthChange: (strength: number) => void;
+  /** The last prediction, if any — drives the strength slider + context line. */
+  prediction: Prediction | null;
 }
 
 type Tab = "adjust" | "grade";
 
-export function AdjustmentsPanel({ disabled, initialCenter }: AdjustmentsPanelProps) {
+export function AdjustmentsPanel({
+  disabled,
+  initialCenter,
+  strength,
+  onStrengthChange,
+  prediction,
+}: AdjustmentsPanelProps) {
   const manual = useEditorStore((s) => s.manual);
   const setManual = useEditorStore((s) => s.setManual);
   const setColorGrade = useEditorStore((s) => s.setColorGrade);
@@ -151,6 +172,42 @@ export function AdjustmentsPanel({ disabled, initialCenter }: AdjustmentsPanelPr
 
       {tab === "adjust" ? (
         <div className="flex flex-col gap-3 p-3">
+          {/* On-device adaptive calibration ("AI"): the recipe is auto-tuned to
+              the photo on load / recipe change. This shows what it detected and
+              lets you dial the overall strength. Everything below stays
+              hand-editable. */}
+          {prediction && (
+            <div className="animate-fade-in flex flex-col gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+              <span className="flex items-center gap-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-wider text-fuchsia-300/90">
+                <svg viewBox="0 0 24 24" fill="none" className="size-3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3l1.6 4.1L18 8.7l-4.1 1.6L12 14.4l-1.6-4.1L6.3 8.7l4.1-1.6z" />
+                  <path d="M18 14l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+                </svg>
+                Adapted to photo
+              </span>
+              <p className="px-0.5 text-[11px] leading-snug text-neutral-400">
+                {formatContext(prediction)}
+              </p>
+              <label className="flex flex-col gap-1 text-sm text-neutral-300">
+                <span className="flex justify-between">
+                  <span>Strength</span>
+                  <span className="tabular-nums text-neutral-400">{Math.round(strength)}%</span>
+                </span>
+                <input
+                  id="adapt-strength"
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={strength}
+                  disabled={disabled}
+                  onChange={(event) => onStrengthChange(Number(event.target.value))}
+                  style={{ "--pct": `${pct(strength, 0, 100)}%` } as React.CSSProperties}
+                />
+              </label>
+            </div>
+          )}
+
           {SLIDERS.map((slider) => (
             <label key={slider.id} className="flex flex-col gap-1 text-sm text-neutral-300">
               <span className="flex justify-between">
